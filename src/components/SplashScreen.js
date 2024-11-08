@@ -1,23 +1,32 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import LottieView from 'lottie-react-native';
 import { colors } from '../utils/colors';
+import { fonts } from '../utils/fonts';
 
-export default function SplashScreen() {
+export default function SplashScreen({ navigation }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation.replace('Login'); 
+    }, 4000); 
+
+    return () => clearTimeout(timer); 
+  }, [navigation]);
+
   return (
     <View style={styles.animationContainer}>
       <LottieView
         autoPlay
-        loop
+        loop={false} 
         speed={0.5}
         style={{
           width: 200,
           height: 200,
           backgroundColor: 'transparent',
         }}
-        source={require('../../assets/sample.json')}
+        source={require('../../assets/sample.json')} 
       />
-        <Text style={styles.title}>FARMNAMIN</Text>
+      <Text style={styles.title}>FARMNAMIN</Text>
     </View>
   );
 }
@@ -31,7 +40,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 40,
-    fontFamily: 'Poppins-Bold',
+    fontFamily: fonts.Bold,
     color: colors.blurryGreen,
+    marginTop: 20,
   },
 });

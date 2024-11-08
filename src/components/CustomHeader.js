@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   backButton: {
-    marginTop: 40,
+    marginTop: 50,
   },
 });
 
