@@ -159,7 +159,7 @@ const ProductScreen = ({ route }) => {
 
           <TouchableOpacity
             style={styles.sectionItemTool}
-          
+            onPress={() => navigation.navigate('Calendar')}
           >
             <Image source={require('../assets/calendar.png')} style={styles.sectionImageTool} />
               <View style={styles.nameContainerTool}>
@@ -181,7 +181,7 @@ const ProductScreen = ({ route }) => {
 
           <TouchableOpacity
             style={styles.sectionItemTool}
-            
+            onPress={() => navigation.navigate('Finance')}
           >
             <Image source={require('../assets/tracking.png')} style={styles.sectionImageTool} />
               <View style={styles.nameContainerTool}>
@@ -205,7 +205,7 @@ const ProductScreen = ({ route }) => {
         <View style={styles.sectionRowGuide}>
           <TouchableOpacity
             style={styles.sectionItemGuide}
-          
+            onPress={() => navigation.navigate('Weather')}
           >
             <Image source={require('../assets/rain-burst.png')} style={styles.sectionImageGuide} />
               <View style={styles.nameContainerGuide}>

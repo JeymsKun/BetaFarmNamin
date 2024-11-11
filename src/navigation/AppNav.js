@@ -16,6 +16,10 @@ import Post from '../screens/Post';
 import ImageViewer from '../components/ImageViewer';
 import VideoPlayer from '../components/VideoPlayer';
 import AdditionalDetails from '../components/AdditionalDetails';
+import Calendar from '../screens/Calendar';
+import Scheduler from '../screens/Scheduler';
+import Finance from '../screens/Finance';
+import Weather from '../screens/Weather';
 
 const Stack = createStackNavigator();
 
@@ -85,9 +89,13 @@ const AppNav = () => {
         <Stack.Screen name='EditProfile' component={EditProfile} />
         <Stack.Screen name='ProductPost' component={ProductPost} />
         <Stack.Screen name='Post' component={Post} />
+        <Stack.Screen name='Calendar' component={Calendar}/>
         <Stack.Screen name='ImageViewer' component={ImageViewer}/>
         <Stack.Screen name='VideoPlayer' component={VideoPlayer}/>
         <Stack.Screen name='AdditionalDetails' component={AdditionalDetails}/>
+        <Stack.Screen name='Scheduler' component={Scheduler}/>
+        <Stack.Screen name='Finance' component={Finance}/>
+        <Stack.Screen name='Weather' component={Weather}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

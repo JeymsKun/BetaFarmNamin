@@ -1,4 +1,4 @@
-// data.js
+
 const data = [
     { 
         id: 1, 
