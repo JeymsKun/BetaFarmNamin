@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, RefreshControl, TouchableOpacity, ScrollView, Button } from 'react-native';
+import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, RefreshControl, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { Picker } from '@react-native-picker/picker';
@@ -25,7 +25,7 @@ const MINDANAO_LOCATIONS = [
     'Koronadal',
   ];
 
-const ProductScreen = ({ route }) => {
+const WeatherScreeen = ({ route }) => {
     const navigation = useNavigation();
     const [showInfoMessage, setShowInfoMessage] = useState(false);
     const [location, setLocation] = useState(MINDANAO_LOCATIONS[0]);
@@ -51,7 +51,7 @@ const ProductScreen = ({ route }) => {
     }, [showInfoMessage]);
 
     const fetchWeather = useCallback(async () => {
-        if (!location) return Alert.alert('Error', 'Please select a location.');
+        if (!location) return Console.log('Error', 'Please select a location.');
 
         const formattedLocation = `${location}, Philippines`; 
         setLoading(true); 
@@ -69,11 +69,11 @@ const ProductScreen = ({ route }) => {
             setWeather(response.data);
             checkAlerts(response.data);
             } else {
-            Alert.alert('Error', 'Failed to fetch weather data.');
+                console.log('Error', 'Failed to fetch weather data.');
             }
         } catch (error) {
             console.error('Error fetching weather data:', error.response?.data || error.message);
-            Alert.alert('Error', error.response?.data?.message || 'Failed to fetch weather data.');
+            console.log('Error', error.response?.data?.message || 'Failed to fetch weather data.');
         } finally {
             setLoading(false); 
         }
@@ -84,7 +84,7 @@ const ProductScreen = ({ route }) => {
         const alertCondition = weather[0].main; 
 
         if (alertCondition === 'Rain' || main.temp < 10) {
-            Alert.alert(
+            console.log(
             'Weather Alert',
             'Heavy rain or cold weather detected. Take necessary precautions!'
             );
@@ -104,9 +104,25 @@ const ProductScreen = ({ route }) => {
         setRefreshing(false);
     };
 
-    const BulletText = ({ text }) => (
-        <Text style={styles.guideText}>• {text}</Text>
+    const BulletText = ({ text, style, styleThunderstorm }) => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.bullet}>•</Text>
+            <Text style={[styles.guideText, style, styleThunderstorm]}> {text}</Text>
+        </View>
+        
     );
+
+    const BulletLink = ({ text, url, stylePagasa }) => (
+        <TouchableOpacity onPress={() => url && Linking.openURL(url)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.bullet}>• </Text>
+                <Text style={[styles.linkText, stylePagasa]}>
+                    {text}
+                </Text>
+            </View>
+        </TouchableOpacity>
+    );
+    
 
 
   return (
@@ -135,7 +151,9 @@ const ProductScreen = ({ route }) => {
 
             {/* Display weather details before the Picker */}
             {loading ? (
-            <ActivityIndicator size="large" color="#6200ee" style={styles.loadingIndicator} />
+             <View style={styles.loadingContainer}>
+                <ActivityIndicator size={30} color="#4CAF50" />
+            </View>
             ) : weather ? (
             <View style={styles.card}>
                 <Text style={styles.cardTitle}>Weather in {weather.name}</Text>
@@ -209,20 +227,15 @@ const ProductScreen = ({ route }) => {
                     <Text style={styles.titleCondition}>Overcast Clouds:</Text>
                     <BulletText text="Reduced sunlight: may affect photosynthesis." style={{ fontSize: 13}}/>
                     <Text style={styles.titleCondition}>Light Rain:</Text>
-                    <BulletText text=""/>
-                    <Text style={styles.guideText}>• Generally beneficial for crops.</Text>
+                    <BulletText text="Generally beneficial for crops"/>
                     <Text style={styles.titleCondition}>Rain:</Text>
-                    <BulletText text=""/>
-                    <Text style={styles.guideText}>• Good for crops if not excessive.</Text>
+                    <BulletText text="Good for crops if not excessive."/>
                     <Text style={styles.titleCondition}>Thunderstorm:</Text>
-                    <BulletText text=""/>
-                    <Text style={[styles.guideText, { fontSize: 11}]}>• Potential damage from strong winds and heavy rain.</Text>
+                    <BulletText text="Potential damage from strong winds and heavy rain." styleThunderstorm={{ fontSize: 12 }}/>
                     <Text style={styles.titleCondition}>Mist:</Text>
-                    <BulletText text=""/>
-                    <Text style={styles.guideText}>• Can affect field activities.</Text>
+                    <BulletText text="Can affect field activities."/>
                     <Text style={styles.titleCondition}>Fog:</Text>
-                    <BulletText text=""/>
-                    <Text style={styles.guideText}>• Similar to mist.</Text>
+                    <BulletText text="Similar to mist."/>
                 </View>
 
                 <View style={styles.humidityWrapper}>
@@ -235,6 +248,20 @@ const ProductScreen = ({ route }) => {
                     <Text style={styles.titleGuide}>Wind Speed</Text>
                     <Text style={[styles.guideText, { fontSize: 12}]}>Good Measurement Range: 5 km/h to 15 km/h</Text>
                     <Text style={[styles.guideText, { fontSize: 12}]}>Bad Measurement Range: Above 30 km/h</Text>
+                </View>
+            </View>
+
+            {/*More Information */}
+            <View style={styles.informationContainer}>
+                <Text style={styles.titleInformation}>For more information?</Text>
+
+                <View style={styles.wrapperInformation}>
+                    <Text style={styles.titleGuide}>PAGASA</Text>
+                    <BulletLink text="Climate Impact Assessment for Philippines Agriculture: " stylePagasa={{ fontSize: 12 }} url="https://www.pagasa.dost.gov.ph/agri-weather/impact-assessment-for-agriculture?form=MG0AV3"/>
+                    <Text style={styles.titleGuide}>World Bank</Text>
+                    <BulletLink text="Climate-Resilient Agriculture in the Philippines: " url="https://climateknowledgeportal.worldbank.org/sites/default/files/2021-08/CRA_Profile_Philippines.pdf?form=MG0AV3"/>
+                    <Text style={styles.titleGuide}>World Food Programme</Text>
+                    <BulletLink text="Climate Change and Food Security Analysis: " url="https://www.wfp.org/news/wfp-study-provides-first-ever-look-links-between-climate-change-and-food-security-philippines?form=MG0AV3"/>
                 </View>
             </View>
     
@@ -282,7 +309,7 @@ const styles = StyleSheet.create({
     },
     titleWeather: {
         fontSize: 15,
-        fontFamily: 'Poppins-Medium',
+        fontFamily: 'Poppins-Bold',
     },
     pickerContainer: {
         marginTop: 20,
@@ -299,19 +326,22 @@ const styles = StyleSheet.create({
         width: '100%',
         backgroundColor: 'transparent', 
     },
-    loadingIndicator: {
-        marginVertical: 20,
-    },
+    loadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 220,
+    },    
     card: {
         marginTop: 10,
         backgroundColor: 'white',
         borderRadius: 10,
         padding: 15,
         elevation: 2, 
+        height: 220,
     },
     cardTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontSize: 15,
+        fontFamily: 'Poppins-Medium',
         marginBottom: 10,
     },
     weatherInfo: {
@@ -322,26 +352,29 @@ const styles = StyleSheet.create({
         marginLeft: 20,
     },
     temperature: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#6200ee',
+        fontSize: 24,
+        fontFamily: 'Poppins-Bold',
+        color: '#2196F3',
     },
     condition: {
-        fontSize: 16,
+        fontSize: 14,
+        fontFamily: 'Poppins-Regular',
         marginVertical: 5,
-        color: '#666',
+        color: '#828282',
     },
     label: {
-        fontSize: 14,
-        color: '#333',
+        fontSize: 12,
+        fontFamily: 'Poppins-Regular',
     },
     humidity: {
-        fontSize: 16,
-        color: '#666',
+        fontSize: 12,
+        fontFamily: 'Poppins-Bold',
+        color: '#FFEB3B',
     },
     windSpeed: {
-        fontSize: 16,
-        color: '#666',
+        fontSize: 12,
+        fontFamily: 'Poppins-Bold',
+        color: '#FFEB3B',
     },
     icon: {
         width: 100,
@@ -382,9 +415,32 @@ const styles = StyleSheet.create({
         color: '#666666',
         fontFamily: 'Poppins-Regular',
     },
+    bullet: {
+        color: 'black',
+        fontFamily: 'Poppins-Regular',
+    },
+    linkText: {
+        color: '#2196F3',
+        textDecorationLine: 'underline',
+        fontFamily: 'Poppins-Regular',
+    },
+    informationContainer: {
+        paddingVertical: 30,
+    },  
+    titleInformation: {
+        fontSize: 15,
+        fontFamily: 'Poppins-Medium',
+    },
+    wrapperInformation: {
+        marginTop: 10,
+        backgroundColor: 'white',
+        borderRadius: 10,
+        padding: 15,
+        elevation: 2, 
+    },
 
     
 });
 
 
-export default ProductScreen;
+export default WeatherScreeen;

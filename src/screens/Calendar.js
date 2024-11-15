@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, TouchableOpacity, ScrollView, Button } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import PlantingData from '../components/PlantingData';
 import Feather from '@expo/vector-icons/Feather';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +11,11 @@ import RNPickerSelect from 'react-native-picker-select';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width } = Dimensions.get('window');
+
+configureReanimatedLogger({
+    level: ReanimatedLogLevel.warn,
+    strict: false, 
+});
 
 const ProductScreen = ({ route }) => {
     const [activeIndex, setActiveIndex] = useState(0);
@@ -121,7 +127,6 @@ const ProductScreen = ({ route }) => {
             renderItem={({ item }) => (
                 <View style={styles.carouselItem}>
                     <Image source={{ uri: item.imageUrl }} style={styles.carouselImage} resizeMode="cover"/>
-                    {/* <ActivityIndicator size="large" color="green" /> */}
                 </View>
             )}
         />

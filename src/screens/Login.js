@@ -3,123 +3,118 @@ import { StyleSheet, View, Text, TextInput, Button, TouchableOpacity, Alert, Act
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors } from '../utils/colors';
 
-// Function to send login request to the backend
-export const loginUser = async (username, password) => {
-  const loginAPIURL = "http://192.168.1.56/farmnamin/login.php"; // URL for the PHP login API
+export const loginUser  = async (username, password, role) => {
+  const loginAPIURL = "http://192.168.1.56/farmnamin/login.php"; 
 
   const headers = {
-    'Accept': 'application/json', // API expects a JSON response
-    'Content-Type': 'application/json', // Sending data in JSON format
+    'Accept': 'application/json', 
+    'Content-Type': 'application/json', 
   };
 
   const data = {
-    username, // Username input by the user
-    password, // Password input by the user
+    username, 
+    password,
+    role, 
   };
 
   try {
-    // Sending a POST request to the login API with the username and password
     const response = await fetch(loginAPIURL, {
       method: 'POST',
       headers,
-      body: JSON.stringify(data), // Convert data to JSON format before sending
+      body: JSON.stringify(data), 
     });
 
-    const responseData = await response.json(); // Parse the response as JSON
+    const responseData = await response.json(); 
 
-    // Check if login was successful based on the response from the server
     if (responseData.Success) {
-      return { success: true, id_user: responseData.id_user }; // If login is successful, return the user ID
+      return { 
+        success: true, 
+        id_user: responseData.id_user, 
+        isInfoComplete: responseData.isInfoComplete 
+      }; 
     } else {
-      return { success: false, message: responseData.Message }; // If login fails, return the error message
+      return { success: false, message: responseData.Message };
     }
   } catch (error) {
-    // Handle errors that occur during the fetch request
     return { success: false, message: "Error: " + error.message };
   }
 };
 
-export default function Login({ navigation }) {
-  // State variables to store input values and UI states
-  const [username, setUsername] = useState(''); // Username entered by the user
-  const [password, setPassword] = useState(''); // Password entered by the user
-  const [showPassword, setShowPassword] = useState(true); // State to toggle password visibility
-  const [loading, setLoading] = useState(false); // State to show loading indicator during login process
+export default function Login({ navigation, route }) {
+  const { role } = route.params;
+  const [username, setUsername] = useState(''); 
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(true);
+  const [loading, setLoading] = useState(false); 
 
-  // Function to handle login button click
   const handleLogin = async () => {
-    setLoading(true); // Show the loading indicator
-
-    // Ensure both username and password fields are filled before proceeding
     if (!username || !password) {
-      Alert.alert('Error', 'Please fill in both username and password'); // Show error alert if fields are empty
-      setLoading(false); // Hide the loading indicator
+      Alert.alert("Validation Error", "Please fill in both username and password.");
       return;
     }
+  
+    setLoading(true);
+    const response = await loginUser (username, password, role);
+  
+    if (response.success) {
+      const userId = response.id_user;
 
-    // Call the loginUser function to send the login request to the server
-    const result = await loginUser(username, password);
-
-    setLoading(false); // Hide the loading indicator after the request is complete
-
-    if (result.success) {
-      // If login is successful, navigate to the Home screen, passing the user ID
-      navigation.navigate('HomeTabs', { id_user: result.id_user });
+      if (!response.isInfoComplete) {
+        console.log("User  info not completed. Navigating to Information screen.");
+        navigation.navigate('Information', { userId });
+      } else {
+        console.log("User  info found. Navigating to HomeTabs.");
+        navigation.navigate('HomeTabs');
+      }
     } else {
-      // If login fails, show an alert with the error message
-      Alert.alert('Login Failed', result.message);
+      Alert.alert("Login Failed", response.message);
     }
+  
+    setLoading(false);
   };
 
   return (
     <View style={styles.container}>
-      {/* Title of the login screen */}
       <Text style={styles.title}>Login</Text>
 
-      {/* Username input field */}
       <View style={styles.usernameContainer}>
         <TextInput
           style={styles.usernameInput}
           placeholder="Username"
           value={username}
-          onChangeText={setUsername} // Updates username state when input changes
+          onChangeText={setUsername} 
         />
       </View>
 
-      {/* Password input field with visibility toggle */}
       <View style={styles.passwordContainer}>
         <TextInput
           style={styles.passwordInput}
           placeholder="Password"
           value={password}
-          onChangeText={setPassword} // Updates password state when input changes
-          secureTextEntry={showPassword} // Controls whether the password is shown or hidden
+          onChangeText={setPassword} 
+          secureTextEntry={showPassword} 
         />
 
-        {/* Icon to toggle password visibility */}
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
           <Icon name={showPassword ? 'eye-off' : 'eye'} size={24} color={colors.gray} />
         </TouchableOpacity>
       </View>
 
-      {/* Show a loading spinner while the login request is in progress */}
       {loading ? (
-        <ActivityIndicator size="large" color={colors.blue} />
+        <ActivityIndicator size={30} color={colors.blue} />
       ) : (
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('HomeTabs')}>
           <Text style={styles.text}>Login</Text>
         </TouchableOpacity>
       )}
 
-      {/* Link to navigate to the sign-up screen */}
-      <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+      <TouchableOpacity onPress={() => navigation.navigate('SignUp', { role })}>
         <Text style={styles.signUpLink}>Don't have an account? Sign Up</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-// Styles for the login screen UI elements
 const styles = StyleSheet.create({
   container: {
     flex: 1,

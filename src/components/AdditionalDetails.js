@@ -145,7 +145,7 @@ const AdditionalDetailsScreen = ({ route, navigation }) => {
         {/* Loading Indicator */}
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4CAF50" />
+            <ActivityIndicator size={30} color="#4CAF50" />
           </View>
         )}
 

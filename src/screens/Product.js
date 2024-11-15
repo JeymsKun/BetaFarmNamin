@@ -1,42 +1,103 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Dimensions, StyleSheet, ActivityIndicator, Image, StatusBar, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import Carousel from 'react-native-reanimated-carousel';
+import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
 import Data from '../components/Data';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { useNavigation } from '@react-navigation/native';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns'
 import 'react-native-get-random-values'; 
 import { v4 as uuidv4 } from 'uuid';
 
 const { width } = Dimensions.get('window');
+
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.warn,
+  strict: false, 
+});
 
 const ProductScreen = ({ route }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const navigation = useNavigation();
   const [selectedButton, setSelectedButton] = useState('posts');
   const [posts, setPosts] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [selectedImages, setSelectedImages] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const { post } = route.params || {};
+  const [menuTimeout, setMenuTimeout] = useState(null); 
+  const menuTimeoutRef = useRef(null);
+  const { post, newProduct, updatedPost, updatedProduct } = route.params || {};
 
   const formatDate = (date) => {
-    const parsedDate = new Date(date);
-    if (isNaN(parsedDate)) {
+    try {
+      return format(date ? parseISO(date) : new Date(), "EEEE • MMMM d, yyyy • hh:mm a");
+    } catch (error) {
       return 'Invalid Date';
     }
-    return format(parsedDate, 'EEEE • MMMM d, yyyy • hh:mm a');
+  };  
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'decimal',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price);
   };
 
   useEffect(() => {
+    if (newProduct) {
+      const productWithDate = { ...newProduct, id: uuidv4(), date: new Date().toISOString() };
+      setProducts((prevProducts) => [...prevProducts, productWithDate]);
+    }
+  }, [newProduct]);
+
+  useEffect(() => {
     if (post) {
-      const postWithId = { ...post, id: uuidv4() }; 
+      const postWithId = { ...post, id: uuidv4(), date: new Date().toISOString() };
       setPosts((prevPosts) => [...prevPosts, postWithId]);
     }
   }, [post]);
+
+  useEffect(() => {
+    if (updatedProduct) {
+      setProducts((prevProducts) => {
+        const index = prevProducts.findIndex(p => p.id === updatedProduct.id);
+        if (index !== -1) {
+          const updatedProducts = [...prevProducts];
+          updatedProducts[index] = { ...updatedProduct, date: new Date().toISOString() };
+          return updatedProducts;
+        } else {
+          return [...prevProducts, { ...updatedProduct, date: new Date().toISOString() }];
+        }
+      });
+    }
+  }, [updatedProduct]);
+
+  useEffect(() => {
+    if (updatedPost) {
+      setPosts((prevPosts) => {
+        const index = prevPosts.findIndex(p => p.id === updatedPost.id);
+        if (index !== -1) {
+          const updatedPosts = [...prevPosts];
+          updatedPosts[index] = { ...updatedPost, date: new Date().toISOString() };
+          return updatedPosts;
+        } else {
+          return [...prevPosts, { ...updatedPost, date: new Date().toISOString() }];
+        }
+      });
+    }
+  }, [updatedPost]);
+
+  useEffect(() => {
+    return () => {
+      if (menuTimeoutRef.current) clearTimeout(menuTimeoutRef.current);
+    };
+  }, []);
 
   const handleDelete = () => {
     if (selectedPost) {
@@ -47,18 +108,74 @@ const ProductScreen = ({ route }) => {
 
   const handleEdit = () => {
     if (selectedPost) {
-      navigation.navigate('Post', { post: selectedPost });
+      navigation.navigate('Post', { 
+        postToEdit: { 
+          ...selectedPost, 
+          images: selectedPost.images.map(image => ({ uri: image })) 
+        } 
+      });
       setSelectedPost(null);
+    }
+  };
+
+  const handleDeleteProduct = () => {
+    if (selectedProduct) {
+
+      setProducts((prevProducts) => 
+        prevProducts.filter(product => product.id !== selectedProduct.id)
+      );
+  
+      setSelectedProduct(null);
+    }
+  };
+
+  const handleEditProduct = () => {
+    if (selectedProduct) {
+      navigation.navigate('ProductPost', { 
+        productToEdit: { 
+          ...selectedProduct, 
+          images: selectedProduct.images.map(image => ({ uri: image })) 
+        } 
+      });
+      setSelectedProduct(null);
     }
   };
 
   const toggleMenu = (postItem) => {
     if (selectedPost && selectedPost.id === postItem.id) {
       setSelectedPost(null); 
+      clearTimeout(menuTimeout); 
     } else {
       setSelectedPost(postItem); 
+      clearTimeout(menuTimeout); 
+      
+      const timeoutId = setTimeout(() => {
+        setSelectedPost(null);
+      }, 5000); 
+      setMenuTimeout(timeoutId); 
     }
   };
+
+  const toggleMenuProduct = (productItem) => {
+    if (selectedProduct && selectedProduct.id === productItem.id) {
+      setSelectedProduct(null); 
+      clearTimeout(menuTimeout); 
+    } else {
+      setSelectedProduct(productItem); 
+      clearTimeout(menuTimeout); 
+
+      const timeoutId = setTimeout(() => {
+        setSelectedProduct(null);
+      }, 5000); 
+      setMenuTimeout(timeoutId); 
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(menuTimeout);
+    };
+  }, [menuTimeout]);
 
   const openImageModal = (images) => {
     setSelectedImages(images); 
@@ -121,7 +238,7 @@ const ProductScreen = ({ route }) => {
                 <Text style={styles.carouselText}>{item.title}</Text>
                 <Text style={styles.carouselDescription}>{item.description}</Text>
               </View>
-              <ActivityIndicator size="large" color="green" />
+              <ActivityIndicator size={30}  color="green" />
             </View>
           )}
         />
@@ -216,7 +333,7 @@ const ProductScreen = ({ route }) => {
 
           <TouchableOpacity
             style={styles.sectionItemGuide}
-          
+            onPress={() => navigation.navigate('Tips')}
           >
             <Image source={require('../assets/lightbulb.png')} style={styles.sectionImageGuide} />
               <View style={styles.nameContainerGuide}>
@@ -227,7 +344,7 @@ const ProductScreen = ({ route }) => {
 
           <TouchableOpacity
             style={styles.sectionItemGuide}
-            
+            onPress={() => navigation.navigate('MarketPrice')}
           >
             <Image source={require('../assets/profit.png')} style={styles.sectionImageGuide} />
               <View style={styles.nameContainerGuide}>
@@ -269,7 +386,7 @@ const ProductScreen = ({ route }) => {
           </TouchableOpacity>
         </View>
 
-       {/* Posts Section */}
+      {/* Posts Section */}
       {selectedButton === 'posts' && (
         <View style={styles.postsContainer}>
           {posts.map((postItem) => (
@@ -334,14 +451,68 @@ const ProductScreen = ({ route }) => {
               {/* Inline Edit/Delete Options */}
               {selectedPost && selectedPost.id === postItem.id && (
                 <View style={styles.inlineMenuContainer}>
+                
+                  {/* Edit Button */}
                   <TouchableOpacity onPress={handleEdit} style={styles.inlineMenuItem}>
+                    <Icon name="pencil" size={20} color="black" /> 
                     <Text style={styles.menuText}>Edit</Text>
                   </TouchableOpacity>
+                  
+                  {/* Delete Button */}
                   <TouchableOpacity onPress={handleDelete} style={styles.inlineMenuItem}>
+                    <Icon name="trash-can" size={20} color="black" /> 
                     <Text style={styles.menuText}>Delete</Text>
                   </TouchableOpacity>
+
                 </View>
               )}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Product Post Section */}
+      {selectedButton === 'products' && (
+        <View style={styles.productContainer}>
+          {products.map((product) => (
+            <View key={product.id} style={styles.productItem}>
+              <Text style={styles.productDate}>Created on {formatDate(product.date)}</Text>
+                <Image 
+                  source={{ uri: product.images[0] }} 
+                  style={styles.productImage}
+                  resizeMode="cover"
+                />
+              <View style={styles.productInfoContainer}>
+                <TouchableOpacity style={styles.productButton}>
+                  <Text style={styles.productName}>{product.name}</Text>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.productPrice}>₱ {formatPrice(product.price)}</Text>
+                    <TouchableOpacity onPress={() => toggleMenuProduct(product)} style={styles.dotsButton}>
+                      <Icon name="dots-horizontal" size={25} color="black" />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+             {/* Inline Edit/Delete Options */}
+            {selectedProduct && selectedProduct.id === product.id && (
+              <View style={styles.inlineMenuContainer}>
+                
+                {/* Edit Button */}
+                <TouchableOpacity onPress={handleEditProduct} style={styles.inlineMenuItem}>
+                  <Icon name="pencil" size={20} color="black" /> 
+                  <Text style={styles.menuText}>Edit</Text>
+                </TouchableOpacity>
+                
+                {/* Delete Button */}
+                <TouchableOpacity onPress={handleDeleteProduct} style={styles.inlineMenuItem}>
+                  <Icon name="trash-can" size={20} color="black" /> 
+                  <Text style={styles.menuText}>Delete</Text>
+                </TouchableOpacity>
+
+              </View>
+            )}
+
             </View>
           ))}
         </View>
@@ -372,14 +543,8 @@ const ProductScreen = ({ route }) => {
         </View>
       </Modal>
 
-
-        {/* Custom loading indicator */}
-        {loading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="green" />
-          </View>
-        )}
-
+      {loading && <ActivityIndicator size={30} color="green" />}
+      
     </ScrollView>
   );
 };
@@ -613,7 +778,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
   },
   postLocation: {
-    lineHeight: 12,
+    lineHeight: 13,
     fontSize: 12,
     fontFamily: 'Poppins-Regular',
   },
@@ -662,13 +827,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     backgroundColor: '#f8f8f8',
-    padding: 8,
     borderRadius: 5,
     marginTop: 4,
     elevation: 2,
   },
   inlineMenuItem: {
     padding: 8,
+    alignItems: 'center',
   },
   menuText: {
     fontFamily: 'Poppins-Regular',
@@ -745,6 +910,44 @@ const styles = StyleSheet.create({
   noImagesText: {
     fontSize: 14,
     color: '#9E9E9E',
+  },
+  productContainer: {
+    padding: 10,
+  },
+  productInfoContainer: {
+    flexDirection: 'column', 
+  },
+  priceContainer: {
+    flexDirection: 'row', 
+    alignItems: 'center',
+    justifyContent: 'space-between', 
+  },
+  dotsButton: {
+    marginLeft: 10, 
+  },
+  productItem: {
+    marginBottom: 10,
+    padding: 15,
+    backgroundColor: '#fff',
+  },
+  productImage: {
+    width: '100%', 
+    height: 200, 
+  },
+  productName: {
+    fontSize: 18,
+    fontFamily: 'Poppins-Medium',
+    marginTop: 10,
+  },
+  productPrice: {
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+    marginRight: 10, 
+    color: '#4CAF50',
+  },
+  productDate: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
   },
 });
 

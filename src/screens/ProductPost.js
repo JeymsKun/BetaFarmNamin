@@ -1,27 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Modal, Animated, ActivityIndicator } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
+import CustomAlert from '../components/CustomAlert';
+import { Alert } from 'react-native';
+import { v4 as uuidv4 } from 'uuid';
 
 const { width, height } = Dimensions.get('window');
 
 const MAX_LENGTH = 250;
 const INPUT_HEIGHT = 150;
 
-export default function Product({ navigation }) {
-  const [productName, setProductName] = useState('');
-  const [productPrice, setProductPrice] = useState('');
-  const [productLocation, setProductLocation] = useState('');
-  const [productDescription, setProductDescription] = useState('');
+export default function Product({ navigation, route }) {
+  const { productToEdit } = route.params || {};
+  const [productName, setProductName] = useState(productToEdit?.name || '');
+  const [productPrice, setProductPrice] = useState(productToEdit?.price || '');
+  const [productLocation, setProductLocation] = useState(productToEdit?.location || '');
+  const [productDescription, setProductDescription] = useState(productToEdit?.nameDescriptionTitle || '');
+  const [images, setImages] = useState(productToEdit?.images || []);
   const [showInfoMessage, setShowInfoMessage] = useState(false);
   const [inputHeight, setInputHeight] = useState(INPUT_HEIGHT);
   const [showInfoMessageAdditional, setShowInfoMessageAdditional] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [images, setImages] = useState([]);
   const [focusedName, setFocusedName] = useState(false);
-  const [focusedProductPrice, setFocusedProductPrice] = useState(false);
+  const [focusedProductPrice, setFocusedPrice] = useState(false);
   const [focusedLocation, setFocusedLocation] = useState(false);
   const [focusedDescription, setFocusedDescription] = useState(false);
   const [additionalDetails, setAdditionalDetails] = useState([]);
@@ -31,6 +35,25 @@ export default function Product({ navigation }) {
   const [animations, setAnimations] = useState([]);
   const xIconRotation = useRef(new Animated.Value(0)).current;
   const [showNoDetailsMessage, setShowNoDetailsMessage] = useState(false);
+  const [isConfirmationModalVisible, setIsConfirmationModalVisible] = useState(false);
+  const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] = useState(false);
+  const [isAddPostConfirmationVisible, setIsAddPostConfirmationVisible] = useState(false);
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (productToEdit) {
+        setProductName(productToEdit.name);
+        setProductPrice(productToEdit.price);
+        setProductLocation(productToEdit.location);
+        setProductDescription(productToEdit.nameDescriptionTitle);
+        setImages(productToEdit.images.map(image => ({
+            uri: image.uri || '', 
+            type: image.type || 'image', 
+            name: image.name || 'Uploaded Media', 
+        })) || []);
+    }
+  }, [productToEdit]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -143,12 +166,46 @@ export default function Product({ navigation }) {
     }
   };
 
-
-
   const handleDescriptionChange = (text) => {
     if (text.length <= MAX_LENGTH) {
       setProductDescription(text);
     }
+  };
+
+  const handleDeletePost = () => {
+    setIsDeleteConfirmationVisible(true);
+  };
+
+  const confirmDeletePost = () => {
+    setIsDeleteConfirmationVisible(false);
+    setImages([]);
+    setProductName('');
+    setProductPrice('');
+    setProductLocation('');
+    setProductDescription('');
+    setAdditionalDetails([]);
+    setFocusedName(false);
+    setFocusedPrice(false);
+    setFocusedLocation(false);
+    setFocusedDescription(false);;
+  };
+
+  const handleAddNewPost = () => {
+    setIsAddPostConfirmationVisible(true);
+  };
+
+  const confirmAddNewPost = () => {
+    setIsAddPostConfirmationVisible(false);
+    setImages([]);
+    setProductName('');
+    setProductPrice('');
+    setProductLocation('');
+    setProductDescription('');
+    setAdditionalDetails([]);
+    setFocusedName(false);
+    setFocusedPrice(false);
+    setFocusedLocation(false);
+    setFocusedDescription(false);
   };
 
   const handleContentSizeChange = (contentSize) => {
@@ -163,6 +220,49 @@ export default function Product({ navigation }) {
 
   const handleDeleteMediaItem = (index) => {
     setImages((prevImages) => prevImages.filter((item, i) => i !== index));
+  };
+
+  const handleDone = () => {
+    if (images.length === 0 || productName.trim() === '' || productPrice.trim() === '' || productLocation.trim() === '' || productDescription.trim() === '') {
+      setIsAlertVisible(true);
+    } else {
+      setIsConfirmationModalVisible(true); 
+    }
+  
+  };
+
+  const renderAlertMessage = () => {
+    if (images.length === 0) {
+      return 'Your Photo/Video is empty';
+    } else if (productDescription.trim() === '') {
+      return 'Your Name, Description, or Title is empty';
+    } else if (productLocation.trim() === '') {
+      return 'Your Location is empty';
+    }
+  };
+  
+
+  const handleConfirm = () => {
+    setIsConfirmationModalVisible(false);
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      setIsLoading(false);
+      const updatedProduct = {
+        id: productToEdit ? productToEdit.id : uuidv4(),
+        images: images.map(image => image.uri),
+        name: productName, 
+        price: productPrice,
+        location: productLocation,
+        nameDescriptionTitle: productDescription,
+      
+      };
+      navigation.navigate('Product', { updatedProduct, selectedOptions: additionalDetails });
+    }, 3000);
+  };
+
+  const handleCancel = () => {
+    setIsConfirmationModalVisible(false); 
   };
 
   const renderMediaList = () => {
@@ -193,7 +293,7 @@ export default function Product({ navigation }) {
               ) : (
                 <Feather name="image" size={25} color="#333" style={styles.mediaIcon} />
               )}
-              <Text style={styles.mediaFileName}>{item.fileName}</Text>
+              <Text style={styles.mediaFileName}>{item.name || 'Uploaded Media'}</Text>
             </View>
           </TouchableOpacity>
         </ScrollView>
@@ -246,8 +346,7 @@ export default function Product({ navigation }) {
         {
           uri: result.assets[0].uri,
           type: result.assets[0].type,
-          name: 'Uploaded Media',
-          fileName: result.assets[0].fileName,
+          name: result.assets[0].fileName || 'Uploaded Media',
         },
       ]);
     }
@@ -274,8 +373,7 @@ export default function Product({ navigation }) {
             {
                 uri: result.assets[0].uri,
                 type: result.assets[0].type,
-                name: 'Uploaded Media',
-                fileName: result.assets[0].fileName,
+                name: result.assets[0].fileName || 'Uploaded Media',
             },
         ]);
     } else {
@@ -297,14 +395,14 @@ export default function Product({ navigation }) {
         <View style={styles.productContainer}>
           <View style={styles.actionButtons}>
             <Text style={styles.sectionTitlePost}>Product Post</Text>
-            <TouchableOpacity style={styles.addButton}>
+            <TouchableOpacity style={styles.addButton} onPress={handleAddNewPost}>
               <View style={styles.iconTextRow}>
                 <AntDesign name="pluscircleo" size={20} color="black" />
                 <Text style={styles.buttonText}>Add New Post</Text>
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.deleteButton}>
+            <TouchableOpacity style={styles.deleteButton} onPress={handleDeletePost}>
               <View style={styles.iconTextRow}>
                 <AntDesign name="delete" size={20} color="black" />
                 <Text style={styles.buttonText}>Delete Post</Text>
@@ -360,7 +458,7 @@ export default function Product({ navigation }) {
             value={productPrice}
             keyboardType="numeric"
             onChangeText={setProductPrice}
-            onBlur={() => setFocusedProductPrice(true)}
+            onBlur={() => setFocusedPrice(true)}
           />
         </View>
         <Text style={styles.inputTitles}>Location</Text>
@@ -452,14 +550,82 @@ export default function Product({ navigation }) {
 
         <View style={styles.footerButtons}>
           <View style={{ flex: 1 }} />
-
-          <TouchableOpacity style={styles.doneButton}>
+          <TouchableOpacity style={styles.doneButton} onPress={handleDone}>
             <Text style={styles.doneText}>Done</Text>
             <Feather name="arrow-right" size={30} color="#28B805" />
           </TouchableOpacity>
         </View>
 
       </View>
+
+        <CustomAlert 
+          visible={isAlertVisible} 
+          title="Empty Input" 
+          message={renderAlertMessage()} 
+          onClose={() => setIsAlertVisible(false)} 
+        />
+
+        {/* Confirmation Modal */}
+        <Modal visible={isConfirmationModalVisible} transparent={true} animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Are you sure you want to {productToEdit ? 'update' : 'post'} your product?</Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.modalButton} onPress={handleConfirm}>
+                  <Text style={styles.modalButtonTextYes}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalButton} onPress={handleCancel}>
+                  <Text style={styles.modalButtonTextNo}>No</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Loading Modal */}
+        <Modal visible={isLoading} transparent={true} animationType="fade">
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+            <View style={{ padding: 20, borderRadius: 10, alignItems: 'center' }}>
+                <ActivityIndicator size={50} color="#4CAF50" />
+              <Text style={{ marginTop: 10, fontFamily: 'Poppins-Medium', color: 'white' }}>Uploading Photo/Video...</Text>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Add New Post Confirmation Modal */}
+        <Modal visible={isAddPostConfirmationVisible} transparent={true} animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Are you sure you want to add a new post?</Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.modalButton} onPress={confirmAddNewPost}>
+                  <Text style={styles.modalButtonTextYes}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalButton} onPress={() => setIsAddPostConfirmationVisible(false)}>
+                  <Text style={styles.modalButtonTextNo}>No</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <Modal visible={isDeleteConfirmationVisible} transparent={true} animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Are you sure you want to delete all posts?</Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={styles.modalButton} onPress={confirmDeletePost}>
+                  <Text style={styles.modalButtonTextYes}>Yes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalButton} onPress={() => setIsDeleteConfirmationVisible(false)}>
+                  <Text style={styles.modalButtonTextNo}>No</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
       </ScrollView>
     </View>
     </>
@@ -685,44 +851,6 @@ const styles = StyleSheet.create({
     color: "#28B805",  
     fontFamily: 'Poppins-Bold',
   },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    width: '90%', 
-    padding: 20,
-    borderRadius: 10,
-    backgroundColor: 'white',
-    alignItems: 'center',
-  },
-  modalTitle: {
-    fontSize: 18,
-    marginBottom: 10,
-    textAlign: 'center',
-    fontFamily: 'Poppins-Medium',
-  },
-  modalButtons: {
-    flexDirection: 'row', 
-    justifyContent: 'space-between',
-    width: '90%', 
-  },
-  modalButton: {
-    backgroundColor: '#4ED25B',
-    height: 30,  
-    padding: 5,
-    borderRadius: 20,
-    flex: 1, 
-    marginHorizontal: 20,
-  },
-  modalButtonText: {  
-    color: 'white',
-    fontSize: 16,
-    fontFamily: 'Poppins-Medium',
-    textAlign: 'center',
-  },
   mediaDetailsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -814,4 +942,49 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },  
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalMessage: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#666',
+    marginVertical: 10,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 40,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  modalButtonTextYes: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontFamily: 'Poppins-Medium',
+  },
+  modalTitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontFamily: 'Poppins-Medium',
+  },
+  modalButtonTextNo: {
+    fontSize: 14,
+    color: '#F44336',
+    fontFamily: 'Poppins-Medium',
+  },
 });

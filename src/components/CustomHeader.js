@@ -14,11 +14,7 @@ const CustomHeader = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    padding: 16,
+
   },
   backButton: {
     marginTop: 50,

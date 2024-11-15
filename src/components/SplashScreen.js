@@ -7,7 +7,7 @@ import { fonts } from '../utils/fonts';
 export default function SplashScreen({ navigation }) {
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.replace('Login'); 
+      navigation.replace('Role'); 
     }, 4000); 
 
     return () => clearTimeout(timer); 

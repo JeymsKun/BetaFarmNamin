@@ -17,7 +17,7 @@ const useFonts = (fontMap) => {
     loadFonts();
   }, [fontMap]);
 
-  return [fontsLoaded]; // Return as an array or just a boolean
+  return [fontsLoaded]; 
 };
 
 export default useFonts;

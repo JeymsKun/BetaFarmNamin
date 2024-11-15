@@ -4,17 +4,19 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
 import CustomAlert from '../components/CustomAlert';
+import { v4 as uuidv4 } from 'uuid';
 
 const { width, height } = Dimensions.get('window');
 
 const MAX_LENGTH = 50;
 
-export default function Post({ navigation }) {
-  const [productLocation, setProductLocation] = useState('');
-  const [productDescription, setProductDescription] = useState('');
+export default function Post({ navigation, route }) {
+  const { postToEdit } = route.params || {};
+  const [productLocation, setProductLocation] = useState(postToEdit?.location || '');
+  const [productDescription, setProductDescription] = useState(postToEdit?.nameDescriptionTitle || '');
+  const [images, setImages] = useState(postToEdit?.images || []);
   const [showInfoMessage, setShowInfoMessage] = useState(false);
   const [showInfoMessageAdditional, setShowInfoMessageAdditional] = useState(false);
-  const [images, setImages] = useState([]);
   const [focusedLocation, setFocusedLocation] = useState(false);
   const [focusedDescription, setFocusedDescription] = useState(false);
   const [additionalDetails, setAdditionalDetails] = useState([]);
@@ -24,6 +26,17 @@ export default function Post({ navigation }) {
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] = useState(false);
   const [isAddPostConfirmationVisible, setIsAddPostConfirmationVisible] = useState(false);
 
+  useEffect(() => {
+    if (postToEdit) {
+        setProductLocation(postToEdit.location);
+        setProductDescription(postToEdit.nameDescriptionTitle);
+        setImages(postToEdit.images.map(image => ({
+            uri: image.uri || '', 
+            type: image.type || 'image', 
+            name: image.name || 'Uploaded Media', 
+        })) || []);
+    }
+}, [postToEdit]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -101,7 +114,7 @@ export default function Post({ navigation }) {
   };
 
   const handleDeleteMediaItem = (index) => {
-    setImages((prevImages) => prevImages.filter((item, i) => i !== index));
+    setImages((prevImages) => prevImages.filter((_, i) => i !== index));
   };
 
   const handleDone = () => {
@@ -111,22 +124,22 @@ export default function Post({ navigation }) {
       setIsConfirmationModalVisible(true); 
     }
   };
-  
+
 
   const handleConfirm = () => {
     setIsConfirmationModalVisible(false);
     setIsLoading(true);
-  
+    
     setTimeout(() => {
       setIsLoading(false);
-      navigation.navigate('Product', {
-        post: {
-          images: images.map(image => image.uri),
-          nameDescriptionTitle: productDescription,
-          location: productLocation,
-        },
-      });
-    }, 3000); 
+      const updatedPost = {
+        id: postToEdit ? postToEdit.id : uuidv4(),
+        images: images.map(image => image.uri), 
+        nameDescriptionTitle: productDescription,
+        location: productLocation,
+      };
+      navigation.navigate('Product', { updatedPost });
+    }, 3000);
   };
   
 
@@ -136,7 +149,7 @@ export default function Post({ navigation }) {
 
   const renderAlertMessage = () => {
     if (images.length === 0) {
-      return 'Your Photo/Video is empty';
+      return 'Your Photo is empty';
     } else if (productDescription.trim() === '') {
       return 'Your Name, Description, or Title is empty';
     } else if (productLocation.trim() === '') {
@@ -184,23 +197,23 @@ export default function Post({ navigation }) {
   
     return (
       <ScrollView contentContainerStyle={styles.mediaScrollContainer} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-      {images.map((item, index) => (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} key={index}>
-          <TouchableOpacity key={`${item.uri}-${index}`} style={styles.mediaItemContainer} onPress={() => handlePressMediaItem(item)}>
-            <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteMediaItem(index)}>
-              <AntDesign name="delete" size={20} color="#FF0000" />
+        {images.map((item, index) => (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} key={index}>
+            <TouchableOpacity key={`${item.uri}-${index}`} style={styles.mediaItemContainer} onPress={() => handlePressMediaItem(item)}>
+              <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteMediaItem(index)}>
+                <AntDesign name="delete" size={20} color="#FF0000" />
+              </TouchableOpacity>
+              <View style={[styles.mediaDetailsRow, { flexDirection: 'row', alignItems: 'center' }]}>
+                {item.type === 'video' ? (
+                  <Feather name="video" size={25} color="#333" style={styles.mediaIcon} />
+                ) : (
+                  <Feather name="image" size={25} color="#333" style={styles.mediaIcon} />
+                )}
+                <Text style={styles.mediaFileName}>{item.name || 'Uploaded Media'}</Text>
+              </View>
             </TouchableOpacity>
-            <View style={[styles.mediaDetailsRow, { flexDirection: 'row', alignItems: 'center' }]}>
-              {item.type === 'video' ? (
-                <Feather name="video" size={25} color="#333" style={styles.mediaIcon} />
-              ) : (
-                <Feather name="image" size={25} color="#333" style={styles.mediaIcon} />
-              )}
-              <Text style={styles.mediaFileName}>{item.fileName}</Text>
-            </View>
-          </TouchableOpacity>
-        </ScrollView>
-      ))}
+          </ScrollView>
+        ))}
   
         {renderImageActionButtons()}
       </ScrollView>
@@ -219,12 +232,13 @@ export default function Post({ navigation }) {
   );
 
   const handlePressMediaItem = (item) => {
-    if (item.type === 'image') {
-      navigation.navigate('ImageViewer', { uri: item.uri });
+    console.log('Media Item:', item);
+    if (item.type === 'image' || item.type === 'video') {
+        navigation.navigate('ImageViewer', { uri: item.uri });
     } else {
-      console.warn('Unsupported document type:', item.fileType);
+        console.warn('Unsupported document type:', item.type); 
     }
-};
+  };
 
   const handleOpenGallery = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -247,8 +261,7 @@ export default function Post({ navigation }) {
         {
           uri: result.assets[0].uri,
           type: result.assets[0].type,
-          name: 'Uploaded Media',
-          fileName: result.assets[0].fileName,
+          name: result.assets[0].fileName || 'Uploaded Media',
         },
       ]);
     }
@@ -275,8 +288,7 @@ export default function Post({ navigation }) {
             {
                 uri: result.assets[0].uri,
                 type: result.assets[0].type,
-                name: 'Uploaded Media',
-                fileName: result.assets[0].fileName,
+                name: result.assets[0].fileName || 'Uploaded Media',
             },
         ]);
     } else {
@@ -353,7 +365,7 @@ export default function Post({ navigation }) {
         <Modal visible={isConfirmationModalVisible} transparent={true} animationType="fade">
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Are you sure you want to post this?</Text>
+              <Text style={styles.modalTitle}>Are you sure you want to {postToEdit ? 'update' : 'post'} this?</Text>
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={styles.modalButton} onPress={handleConfirm}>
                   <Text style={styles.modalButtonTextYes}>Yes</Text>
@@ -378,7 +390,7 @@ export default function Post({ navigation }) {
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
             <View style={{ padding: 20, borderRadius: 10, alignItems: 'center' }}>
                 <ActivityIndicator size={50} color="#4CAF50" />
-              <Text style={{ marginTop: 10, fontFamily: 'Poppins-Medium', color: 'white' }}>Uploading Photo/Video...</Text>
+              <Text style={{ marginTop: 10, fontFamily: 'Poppins-Medium', color: 'white' }}>Uploading Photo...</Text>
             </View>
           </View>
         </Modal>
@@ -690,8 +702,8 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 14,
+    textAlign: 'center',
     fontFamily: 'Poppins-Medium',
-    color: '#333',
   },
   modalMessage: {
     fontSize: 14,

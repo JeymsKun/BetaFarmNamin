@@ -1,12 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, ImageBackground, StatusBar, FlatList, Animated } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-const user = {
-  name: "James David R. Maserin",
-  mobile: "09363932522",
-  experience: "-----",
-  bio: "Hard Working Po",
+const userDefault = {
   reviews: [
     { id: 1, rating: 4, text: "Fresh and organic!", tags: ["organic", "fresh"] },
     { id: 2, rating: 5, text: "Affordable and great quality.", tags: ["affordable", "quality"] },
@@ -28,19 +24,49 @@ const user = {
     { id: 12, name: "Dako nga Talong per kilo", price: "15.00", image: require('../assets/product.png') },
     { id: 13, name: "Dako nga Talong per kilo", price: "15.00", image: require('../assets/product.png') },
     { id: 14, name: "Palit namo grabe raba ni maka kuan. Dako nga Talong per kilo", price: "15.00", image: require('../assets/product.png') }
-  ],
-  coverPhoto: require('../assets/group.png'), 
-  profileImage: require('../assets/apple.png'), 
+  ], 
 };
 
+const DEFAULT_COVER_PHOTO = require('../assets/group.png'); 
+const DEFAULT_PROFILE_IMAGE = require('../assets/apple.png');
+
+
 const ProfileScreen = ({ navigation }) => {
+  const [user, setUser] = useState({
+    first_name: '',
+    last_name: '',
+    middle_name: '',
+    suffix: '',
+    phoneNumber: '',
+  });
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [coverModalVisible, setCoverModalVisible] = useState(false);
-  const [bio, setBio] = useState(user.bio);
+  const [bio, setBio] = useState("");
   const [showMessage, setShowMessage] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(1));
-
   const profileScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('http://192.168.1.56/farmnamin/getUserInfo.php', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        const data = await response.json();
+        if (data.Success) {
+          setUser(data.User);
+          console.log('User Data:', data.User); 
+        } else {
+          console.error(data.Message);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleVerifyPress = () => {
     setShowMessage(true);
@@ -150,7 +176,7 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.imageContainer}>
             <TouchableOpacity onPress={() => setCoverModalVisible(true)}>
               <ImageBackground 
-                source={user.coverPhoto} 
+                source={DEFAULT_COVER_PHOTO} 
                 style={styles.coverPhoto} 
                 resizeMode="cover" 
               />
@@ -161,7 +187,7 @@ const ProfileScreen = ({ navigation }) => {
               <TouchableOpacity onPress={animateProfile}>
                 <View style={styles.profileImageContainer}>
                   <Image 
-                    source={user.profileImage} 
+                    source={DEFAULT_PROFILE_IMAGE} 
                     style={styles.profileImage} 
                     resizeMode="contain" 
                   />
@@ -192,12 +218,14 @@ const ProfileScreen = ({ navigation }) => {
 
           <View style={styles.allInfoContainer}>
             <View style={styles.userInfoContainer}>
-              <Text style={styles.name}>{user.name}</Text>
-              <Text style={styles.mobile}>{user.mobile}</Text>
-              <Text style={styles.experience}>{user.experience}</Text>
+            <Text style={styles.name}>
+              {`${user?.first_name || ''} ${user?.last_name || ''} ${user?.middle_name || ''} ${user?.suffix || ''}`}
+            </Text>
+              <Text style={styles.mobile}>{user?.phoneNumber || '-----'}</Text>
+              <Text style={styles.experience}>{user.experience || "-----"}</Text>
             </View>
             <View style={styles.bioContainer}>
-                <Text style={styles.bioText}>{bio}</Text>
+              <Text style={styles.bioText}>{bio || ""}</Text>
             </View>
           </View>
 
@@ -205,14 +233,14 @@ const ProfileScreen = ({ navigation }) => {
             <TouchableOpacity onPress={navigateToReviewScreen}>
               <Text style={styles.reviewTitle}>Go to Consumer's Feedback</Text>
             </TouchableOpacity>
-            <FlatList
-              data={user.reviews}
-              horizontal
-              renderItem={renderReviewItem}
-              keyExtractor={(item) => item.id.toString()}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.reviewList}
-            />
+              <FlatList
+                  data={userDefault.reviews}
+                  horizontal
+                  renderItem={renderReviewItem}
+                  keyExtractor={(item) => item.id.toString()}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.reviewList}
+              />
           </View>
 
           <View style={styles.fixedTitleContainer}>
@@ -221,7 +249,7 @@ const ProfileScreen = ({ navigation }) => {
 
         </>
       }
-      data={user.products}
+      data={userDefault.products || []} 
       renderItem={renderProductItem}
       keyExtractor={(item) => item.id.toString()}
       numColumns={2}
@@ -236,7 +264,7 @@ const ProfileScreen = ({ navigation }) => {
         >
           <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
             <TouchableOpacity style={styles.modalBackground} onPress={() => handleCloseModal(setProfileModalVisible)}>
-              <Image source={user.profileImage} style={styles.fullProfileImage} />
+              <Image source={DEFAULT_PROFILE_IMAGE} style={styles.fullProfileImage} />
             </TouchableOpacity>
           </Animated.View>
         </Modal>
@@ -249,7 +277,7 @@ const ProfileScreen = ({ navigation }) => {
         >
           <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
             <TouchableOpacity style={styles.modalBackground} onPress={() => handleCloseModal(setCoverModalVisible)}>
-              <Image source={user.coverPhoto} style={styles.fullCoverImage} />
+              <Image source={DEFAULT_COVER_PHOTO} style={styles.fullCoverImage} />
             </TouchableOpacity>
           </Animated.View>
         </Modal>
