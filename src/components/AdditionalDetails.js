@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Dimensions, Alert, ActivityIndicator } from 'react-native';
 import { AntDesign, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import CustomAlert from './CustomAlert';
@@ -115,6 +115,17 @@ const AdditionalDetailsScreen = ({ route, navigation }) => {
   const handleBack = () => {
     navigation.navigate('ProductPost', { additionalDetails: selectedOptions });
   };
+
+  // useEffect(() => {
+  //   const backAction = () => {
+  //     handleBack();
+  //     return true; 
+  //   };
+
+  //   const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+  //   return () => backHandler.remove(); 
+  // }, [selectedOptions]);
 
   return (
     <View style={styles.container}>

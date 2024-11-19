@@ -486,10 +486,9 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontFamily: 'Poppins-Regular',
-    fontSize: 10,
+    fontSize: 12,
     color: '#333',
-    fontSize: 10,
-    color: '#333',
+
   },
   infoMessageAdditional: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)', 

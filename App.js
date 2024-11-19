@@ -1,8 +1,11 @@
 import React from 'react';
-import AppNav from './src/navigation/AppNav'; 
+import AppNav from './src/navigation/AppNav';
+import { ScheduleProvider } from './src/context/ScheduleContext'; 
 
 export default function App() {
-  return (
-    <AppNav />
-  );
+    return (
+      <ScheduleProvider>
+          <AppNav />
+      </ScheduleProvider>
+    );
 }

@@ -9,21 +9,7 @@ import Login from '../screens/Login';
 import SignUp from '../screens/SignUp';
 import Information from '../screens/Information';
 import HomeTabs from '../components/HomeTabs';
-import Profile from '../screens/Profile';
-import PostDetail from '../components/PostDetails';
-import EditProfile from '../components/EditProfile';
-import Product from '../screens/Product';
-import ProductPost from '../screens/ProductPost';
-import Post from '../screens/Post';
-import ImageViewer from '../components/ImageViewer';
-import VideoPlayer from '../components/VideoPlayer';
-import AdditionalDetails from '../components/AdditionalDetails';
-import Calendar from '../screens/Calendar';
-import Scheduler from '../screens/Scheduler';
-import Finance from '../screens/Finance';
-import Weather from '../screens/Weather';
-import Tips from '../screens/Tips';
-import MarketPrice from '../screens/MarketPrice';
+import WebViewScreen from '../components/WebViewScreen';
 
 const Stack = createStackNavigator();
 
@@ -90,21 +76,7 @@ const AppNav = () => {
         <Stack.Screen name="SignUp" component={SignUp} />
         <Stack.Screen name="Information" component={Information} />
         <Stack.Screen name="HomeTabs" component={HomeTabs} />
-        <Stack.Screen name="Profile" component={Profile} />
-        <Stack.Screen name="PostDetail" component={PostDetail} />
-        <Stack.Screen name="EditProfile" component={EditProfile} />
-        <Stack.Screen name="Product" component={Product} />
-        <Stack.Screen name="ProductPost" component={ProductPost} />
-        <Stack.Screen name="Post" component={Post} />
-        <Stack.Screen name="Calendar" component={Calendar} />
-        <Stack.Screen name="ImageViewer" component={ImageViewer} />
-        <Stack.Screen name="VideoPlayer" component={VideoPlayer} />
-        <Stack.Screen name="AdditionalDetails" component={AdditionalDetails} />
-        <Stack.Screen name="Scheduler" component={Scheduler} />
-        <Stack.Screen name="Finance" component={Finance} />
-        <Stack.Screen name="Weather" component={Weather} />
-        <Stack.Screen name="Tips" component={Tips} />
-        <Stack.Screen name="MarketPrice" component={MarketPrice} />
+        <Stack.Screen name="WebView" component={WebViewScreen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

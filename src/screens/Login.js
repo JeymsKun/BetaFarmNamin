@@ -103,7 +103,7 @@ export default function Login({ navigation, route }) {
       {loading ? (
         <ActivityIndicator size={30} color={colors.blue} />
       ) : (
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('HomeTabs')}>
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.text}>Login</Text>
         </TouchableOpacity>
       )}

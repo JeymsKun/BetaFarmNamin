@@ -40,6 +40,7 @@ export default function Product({ navigation, route }) {
   const [isAddPostConfirmationVisible, setIsAddPostConfirmationVisible] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
 
   useEffect(() => {
     if (productToEdit) {
@@ -57,22 +58,18 @@ export default function Product({ navigation, route }) {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      const additionalDetailsFromRoute = navigation.getState().routes.find(route => route.name === 'ProductPost')?.params?.additionalDetails;
-      if (additionalDetailsFromRoute) {
-        setAdditionalDetails(additionalDetailsFromRoute);
-        const initialDetailValues = {};
-        const initialFocusedDetails = {};
-        additionalDetailsFromRoute.forEach(detail => {
-          initialDetailValues[detail] = ''; 
-          initialFocusedDetails[detail] = false; 
+      const additionalDetailsFromRoute = route.params?.additionalDetails || [];
+      if (additionalDetailsFromRoute.length > 0) {
+        setAdditionalDetails(prevDetails => {
+  
+          const uniqueDetails = [...new Set([...prevDetails, ...additionalDetailsFromRoute])];
+          return uniqueDetails;
         });
-        setDetailValues(initialDetailValues);
-        setFocusedDetails(initialFocusedDetails); 
       }
     });
 
     return unsubscribe;
-  }, [navigation]);
+  }, [navigation, route.params]);
 
   const handleInputChange = (title, value) => {
     setDetailValues((prev) => ({
@@ -689,14 +686,12 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontFamily: 'Poppins-Regular',
-    fontSize: 10,
-    color: '#333',
-    fontSize: 10,
+    fontSize: 12,
     color: '#333',
   },
   infoTextAddtional: {
     fontFamily: 'Poppins-Regular',
-    fontSize: 10,
+    fontSize: 12,
     color: '#333',
   },
   infoMessageAdditional: {
@@ -705,7 +700,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     bottom: 25,
-    width: '90%',
+    width: '100%',
     height: height * 0.25,
     borderRadius: 5,
     padding: 10,
@@ -714,13 +709,13 @@ const styles = StyleSheet.create({
   },
   infoTextAdditional: {
     fontFamily: 'Poppins-Regular',
-    fontSize: 10,
+    fontSize: 12,
     marginBottom: 5,
     color: '#333',
   },
   bulletPoint: {
     fontFamily: 'Poppins-Regular',
-    fontSize: 10,
+    fontSize: 12,
     marginLeft: 10,
     marginTop: 2,
     color: '#333',

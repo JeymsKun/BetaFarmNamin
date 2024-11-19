@@ -25,30 +25,34 @@ const MINDANAO_LOCATIONS = [
     'Koronadal',
   ];
 
-const WeatherScreeen = ({ route }) => {
+const WeatherScreeen = () => {
     const navigation = useNavigation();
-    const [showInfoMessage, setShowInfoMessage] = useState(false);
     const [location, setLocation] = useState(MINDANAO_LOCATIONS[0]);
     const [weather, setWeather] = useState(null);
-    const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [showInfoMessageAlert, setShowInfoMessageAlert] = useState(false);
+    const [showInfoMessageGuide, setShowInfoMessageGuide] = useState(false);
 
     useEffect(() => {
-        fetchWeather(); 
+        fetchWeather();
     }, []);
 
     useEffect(() => {
-        const clearMessage = () => {
-            setShowInfoMessage(false);
-        };
+        const timer = setTimeout(() => {
+            setShowInfoMessageAlert(false);
+            setShowInfoMessageGuide(false);
+        }, 4000);
 
-        let timer;
-        if (showInfoMessage) {
-            timer = setTimeout(clearMessage, 4000); 
-        }
+        return () => clearTimeout(timer);
+    }, [showInfoMessageAlert, showInfoMessageGuide]);
 
-        return () => clearTimeout(timer); 
-    }, [showInfoMessage]);
+    const handlePress = (url, text) => {
+     
+        navigation.navigate('WebView', {
+            url: url,
+            title: text, 
+        });
+    };    
 
     const fetchWeather = useCallback(async () => {
         if (!location) return Console.log('Error', 'Please select a location.');
@@ -97,12 +101,6 @@ const WeatherScreeen = ({ route }) => {
         }
         return 'Good'; 
     };
-    
-    const onRefresh = async () => {
-        setRefreshing(true);
-        await fetchWeather(); 
-        setRefreshing(false);
-    };
 
     const BulletText = ({ text, style, styleThunderstorm }) => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -113,7 +111,7 @@ const WeatherScreeen = ({ route }) => {
     );
 
     const BulletLink = ({ text, url, stylePagasa }) => (
-        <TouchableOpacity onPress={() => url && Linking.openURL(url)}>
+        <TouchableOpacity onPress={() => handlePress(url, text)}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={styles.bullet}>• </Text>
                 <Text style={[styles.linkText, stylePagasa]}>
@@ -121,155 +119,231 @@ const WeatherScreeen = ({ route }) => {
                 </Text>
             </View>
         </TouchableOpacity>
-    );
-    
+    );    
 
+    const getHumidityStyle = (humidity) => {
+        if (humidity < 30 || humidity > 72) {
+            return { color: 'red' };  
+        }
+        return { color: '#FFEB3B' };  
+    };
 
-  return (
-    <ScrollView style={styles.container} scrollEventThrottle={16}>
-        <StatusBar hidden={false} />
+    const getWindSpeedStyle = (windSpeed) => {
+        if (windSpeed > 30) {
+            return { color: 'red' };  
+        }
+        return { color: '#FFEB3B' };  
+    };
 
-        {/* Header */}
-        <View style={styles.header}>
-            <View style={styles.headerTitle}>
-                <Text style={styles.headerTitleText}>Heads Up, Jojo!</Text>
+    const getConditionStyle = (condition) => {
+        if (condition === 'Thunderstorm' || condition === 'Rain' || condition === 'Fog') {
+            return { color: 'red' };  
+        }
+        return { color: '#FFEB3B' };  
+    };
+
+    const getTimeBasedGreeting = () => {
+        const currentHour = new Date().getHours();
+
+        if (currentHour < 12) {
+            return "Good Morning";
+        } else if (currentHour < 18) {
+            return "Good Afternoon";
+        } else {
+            return "Good Evening";
+        }
+    };
+
+    const getDynamicGreeting = () => {
+        const timeGreeting = getTimeBasedGreeting();
+
+        if (!weather) {
+            return `${timeGreeting}, Jojo! Stay prepared for any weather today.`;
+        }
+
+        const condition = weather.weather[0].main;
+        const temperature = weather.main.temp;
+        const location = weather.name;
+
+        let weatherDescription = "";
+
+        if (condition === "Rain") {
+            weatherDescription = "It's raining outside. Don't forget your umbrella!";
+        } else if (condition === "Clear") {
+            weatherDescription = "It's a sunny day. Perfect for outdoor activities!";
+        } else if (condition === "Clouds") {
+            weatherDescription = "It's a bit cloudy. Enjoy the cool weather!";
+        } else if (condition === "Thunderstorm") {
+            weatherDescription = "Stormy weather ahead. Stay safe indoors!";
+        } else {
+            weatherDescription = `Current temperature is ${temperature}°C in ${location}.`;
+        }
+
+        return `${timeGreeting}, Jojo! ${weatherDescription}`;
+    };
+
+    return (
+        <ScrollView style={styles.container} scrollEventThrottle={16}>
+            <StatusBar hidden={false} />
+
+            {/* Header */}
+            <View style={styles.header}>
+                <View style={styles.headerTitle}>
+                    <Text style={styles.headerTitleText}>Heads Up, Jojo!</Text>
+                </View>
+                <View style={styles.headerGreet}>
+                    <Text style={styles.headerTitleTextGreet}>{getDynamicGreeting()}</Text>
+                </View>
             </View>
-            <View style={styles.headerGreet}>
-                <Text style={styles.headerTitleText}>Weather Update Incoming</Text>
-            </View>
-        </View>
 
-       {/* Weather Container */}
-       <View style={styles.weatherContainer}>
+        {/* Weather Container */}
+        <View style={styles.weatherContainer}>
 
-            <View style={styles.rowWeather}>
+                <View style={styles.rowWeather}>
                 <Text style={styles.titleWeather}>Farmer's Weather Alerts</Text>
-                <TouchableOpacity onPress={() => setShowInfoMessage((prev) => !prev)}>
-                    <AntDesign name="questioncircleo" size={14} color="black" />
-                </TouchableOpacity>
-            </View>
-
-            {/* Display weather details before the Picker */}
-            {loading ? (
-             <View style={styles.loadingContainer}>
-                <ActivityIndicator size={30} color="#4CAF50" />
-            </View>
-            ) : weather ? (
-            <View style={styles.card}>
-                <Text style={styles.cardTitle}>Weather in {weather.name}</Text>
-                <View style={styles.weatherInfo}>
-                <Image
-                    source={{
-                    uri: `https://openweathermap.org/img/wn/${weather.weather[0].icon}@4x.png`,
-                    }}
-                    style={styles.icon}
-                />
-                <View style={styles.weatherDetails}>
-                    <Text style={styles.label}>Temperature:</Text>
-                    <Text style={styles.temperature}>
-                    {weather.main.temp} °C - {getTemperatureStatus(weather.main.temp)}
-                    </Text>
-                    <Text style={styles.condition}>
-                    Condition: {weather.weather[0].description}
-                    </Text>
-                    <Text style={styles.label}>Humidity:</Text>
-                    <Text style={styles.humidity}>{weather.main.humidity}%</Text>
-                    <Text style={styles.label}>Wind Speed:</Text>
-                    <Text style={styles.windSpeed}>{weather.wind.speed} m/s</Text>
+                    <TouchableOpacity onPress={() => setShowInfoMessageAlert((prev) => !prev)}>
+                        <AntDesign name="questioncircleo" size={14} color="black" />
+                    </TouchableOpacity>
+                    {showInfoMessageAlert && (
+                        <View style={styles.infoMessage}>
+                            <Text style={styles.infoText}>
+                                Weather alerts notify you of adverse weather like heavy rain, storms, or extreme heat.
+                            </Text>
+                        </View>
+                    )}
                 </View>
+
+                {/* Display weather details before the Picker */}
+                {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size={30} color="#4CAF50" />
                 </View>
+                ) : weather ? (
+                <View style={styles.card}>
+                    <Text style={styles.cardTitle}>Weather in {weather.name}</Text>
+                    <View style={styles.weatherInfo}>
+                    <Image
+                        source={{
+                        uri: `https://openweathermap.org/img/wn/${weather.weather[0].icon}@4x.png`,
+                        }}
+                        style={styles.icon}
+                    />
+                    <View style={styles.weatherDetails}>
+                        <Text style={styles.label}>Temperature:</Text>
+                        <Text style={styles.temperature}>
+                            {weather.main.temp} °C - {getTemperatureStatus(weather.main.temp)}
+                        </Text>
+                        <Text style={styles.condition}>
+                            Condition: <Text style={getConditionStyle(weather.weather[0].main)}>{weather.weather[0].description}</Text>
+                        </Text>
+                        <Text style={styles.label}>Humidity:</Text>
+                        <Text style={[styles.humidity, getHumidityStyle(weather.main.humidity)]}>
+                            {weather.main.humidity}%
+                        </Text>
+                        <Text style={styles.label}>Wind Speed:</Text>
+                        <Text style={[styles.windSpeed, getWindSpeedStyle(weather.wind.speed)]}>
+                            {weather.wind.speed} m/s
+                        </Text>
+                    </View>
+                    </View>
+                </View>
+                ) : null}
+
+                {/* Move the Picker below the weather details */}
+                <View style={styles.pickerContainer}>
+                    <Picker
+                        selectedValue={location}
+                        onValueChange={(itemValue) => {
+                        setLocation(itemValue);
+                        fetchWeather(); 
+                        }}
+                        style={styles.picker}
+                    >
+                        {MINDANAO_LOCATIONS.map((loc) => (
+                        <Picker.Item key={loc} label={loc} value={loc} />
+                        ))}
+                    </Picker>
+                </View>
+
+
             </View>
-            ) : null}
 
-            {/* Move the Picker below the weather details */}
-            <View style={styles.pickerContainer}>
-                <Picker
-                    selectedValue={location}
-                    onValueChange={(itemValue) => {
-                    setLocation(itemValue);
-                    fetchWeather(); 
-                    }}
-                    style={styles.picker}
-                >
-                    {MINDANAO_LOCATIONS.map((loc) => (
-                    <Picker.Item key={loc} label={loc} value={loc} />
-                    ))}
-                </Picker>
-            </View>
-
-
-        </View>
-
-        {/* Weather Condition Guide Container */}
-        <View style={styles.weatherGuideContainer}>
-            <View style={styles.rowWeather}>
+            {/* Weather Condition Guide Container */}
+            <View style={styles.weatherGuideContainer}>
+                <View style={styles.rowWeather}>
                 <Text style={styles.titleWeather}>Weather Condition Guide</Text>
-                <TouchableOpacity onPress={() => setShowInfoMessage((prev) => !prev)}>
-                    <AntDesign name="questioncircleo" size={14} color="black" />
-                </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setShowInfoMessageGuide((prev) => !prev)}>
+                        <AntDesign name="questioncircleo" size={14} color="black" />
+                    </TouchableOpacity>
+                    {showInfoMessageGuide && (
+                        <View style={styles.infoMessage}>
+                            <Text style={styles.infoText}>
+                                Learn about weather conditions and their impact on agriculture.
+                            </Text>
+                        </View>
+                    )}
+                </View>
+
+                <View style={styles.guideContainer}>
+                    <View style={styles.temperatureWrapper}>
+                        <Text style={styles.titleGuide}>Temperature</Text>
+                        <Text style={[styles.guideText, { fontSize: 12}]}>Good Measurement: Range: 15°C to 30°C</Text>
+                        <Text style={[styles.guideText, { fontSize: 12}]}>Bad Measurement: Below 10°C or Above 30°C</Text>
+                    </View>
+
+                    <View style={styles.conditionWrapper}>
+                        <Text style={styles.titleGuide}>Condition</Text>
+                        <Text style={styles.titleCondition}>Clear Sky:</Text>
+                        <BulletText text="No clouds, full sunshine." />
+                        <Text style={styles.titleCondition}>Few Clouds:</Text>
+                        <BulletText text="Generally good weather."/>
+                        <Text style={styles.titleCondition}>Scattered Clouds:</Text>
+                        <BulletText text="Good growing conditions."/>
+                        <Text style={styles.titleCondition}>Overcast Clouds:</Text>
+                        <BulletText text="Reduced sunlight: may affect photosynthesis." style={{ fontSize: 13}}/>
+                        <Text style={styles.titleCondition}>Light Rain:</Text>
+                        <BulletText text="Generally beneficial for crops"/>
+                        <Text style={styles.titleCondition}>Rain:</Text>
+                        <BulletText text="Good for crops if not excessive."/>
+                        <Text style={styles.titleCondition}>Thunderstorm:</Text>
+                        <BulletText text="Potential damage from strong winds and heavy rain." styleThunderstorm={{ fontSize: 12 }}/>
+                        <Text style={styles.titleCondition}>Mist:</Text>
+                        <BulletText text="Can affect field activities."/>
+                        <Text style={styles.titleCondition}>Fog:</Text>
+                        <BulletText text="Similar to mist."/>
+                    </View>
+
+                    <View style={styles.humidityWrapper}>
+                        <Text style={styles.titleGuide}>Humidity</Text>
+                        <Text style={[styles.guideText, { fontSize: 12}]}>Good Measurement Range: 40% to 60%</Text>
+                        <Text style={[styles.guideText, { fontSize: 12}]}>Bad Measurement Range: Below 30% or Above 72%</Text>
+                    </View>
+
+                    <View style={styles.windSpeedWrapper}>
+                        <Text style={styles.titleGuide}>Wind Speed</Text>
+                        <Text style={[styles.guideText, { fontSize: 12}]}>Good Measurement Range: 5 km/h to 15 km/h</Text>
+                        <Text style={[styles.guideText, { fontSize: 12}]}>Bad Measurement Range: Above 30 km/h</Text>
+                    </View>
+                </View>
+
+                {/*More Information */}
+                <View style={styles.informationContainer}>
+                    <Text style={styles.titleInformation}>For more information?</Text>
+
+                    <View style={styles.wrapperInformation}>
+                        <Text style={styles.titleGuide}>PAGASA</Text>
+                        <BulletLink text="Climate Impact Assessment for Philippines Agriculture: " stylePagasa={{ fontSize: 12 }} url="https://www.pagasa.dost.gov.ph/agri-weather/impact-assessment-for-agriculture?form=MG0AV3"/>
+                        <Text style={styles.titleGuide}>World Bank</Text>
+                        <BulletLink text="Climate-Resilient Agriculture in the Philippines: " url="https://climateknowledgeportal.worldbank.org/country/philippines?form=MG0AV3"/>
+                        <Text style={styles.titleGuide}>World Food Programme</Text>
+                        <BulletLink text="Climate Change and Food Security Analysis: " url="https://www.wfp.org/news/wfp-study-provides-first-ever-look-links-between-climate-change-and-food-security-philippines?form=MG0AV3"/>
+                    </View>
+                </View>
+        
             </View>
 
-            <View style={styles.guideContainer}>
-                <View style={styles.temperatureWrapper}>
-                    <Text style={styles.titleGuide}>Temperature</Text>
-                    <Text style={[styles.guideText, { fontSize: 12}]}>Good Measurement: Range: 15°C to 30°C</Text>
-                    <Text style={[styles.guideText, { fontSize: 12}]}>Bad Measurement: Below 10°C or Above 30°C</Text>
-                </View>
-
-                <View style={styles.conditionWrapper}>
-                    <Text style={styles.titleGuide}>Condition</Text>
-                    <Text style={styles.titleCondition}>Clear Sky:</Text>
-                    <BulletText text="No clouds, full sunshine." />
-                    <Text style={styles.titleCondition}>Few Clouds:</Text>
-                    <BulletText text="Generally good weather."/>
-                    <Text style={styles.titleCondition}>Scattered Clouds:</Text>
-                    <BulletText text="Good growing conditions."/>
-                    <Text style={styles.titleCondition}>Overcast Clouds:</Text>
-                    <BulletText text="Reduced sunlight: may affect photosynthesis." style={{ fontSize: 13}}/>
-                    <Text style={styles.titleCondition}>Light Rain:</Text>
-                    <BulletText text="Generally beneficial for crops"/>
-                    <Text style={styles.titleCondition}>Rain:</Text>
-                    <BulletText text="Good for crops if not excessive."/>
-                    <Text style={styles.titleCondition}>Thunderstorm:</Text>
-                    <BulletText text="Potential damage from strong winds and heavy rain." styleThunderstorm={{ fontSize: 12 }}/>
-                    <Text style={styles.titleCondition}>Mist:</Text>
-                    <BulletText text="Can affect field activities."/>
-                    <Text style={styles.titleCondition}>Fog:</Text>
-                    <BulletText text="Similar to mist."/>
-                </View>
-
-                <View style={styles.humidityWrapper}>
-                    <Text style={styles.titleGuide}>Humidity</Text>
-                    <Text style={[styles.guideText, { fontSize: 12}]}>Good Measurement Range: 40% to 60%</Text>
-                    <Text style={[styles.guideText, { fontSize: 12}]}>Bad Measurement Range: Below 30% or Above 72%</Text>
-                </View>
-
-                <View style={styles.windSpeedWrapper}>
-                    <Text style={styles.titleGuide}>Wind Speed</Text>
-                    <Text style={[styles.guideText, { fontSize: 12}]}>Good Measurement Range: 5 km/h to 15 km/h</Text>
-                    <Text style={[styles.guideText, { fontSize: 12}]}>Bad Measurement Range: Above 30 km/h</Text>
-                </View>
-            </View>
-
-            {/*More Information */}
-            <View style={styles.informationContainer}>
-                <Text style={styles.titleInformation}>For more information?</Text>
-
-                <View style={styles.wrapperInformation}>
-                    <Text style={styles.titleGuide}>PAGASA</Text>
-                    <BulletLink text="Climate Impact Assessment for Philippines Agriculture: " stylePagasa={{ fontSize: 12 }} url="https://www.pagasa.dost.gov.ph/agri-weather/impact-assessment-for-agriculture?form=MG0AV3"/>
-                    <Text style={styles.titleGuide}>World Bank</Text>
-                    <BulletLink text="Climate-Resilient Agriculture in the Philippines: " url="https://climateknowledgeportal.worldbank.org/sites/default/files/2021-08/CRA_Profile_Philippines.pdf?form=MG0AV3"/>
-                    <Text style={styles.titleGuide}>World Food Programme</Text>
-                    <BulletLink text="Climate Change and Food Security Analysis: " url="https://www.wfp.org/news/wfp-study-provides-first-ever-look-links-between-climate-change-and-food-security-philippines?form=MG0AV3"/>
-                </View>
-            </View>
-    
-        </View>
-
-
-    </ScrollView>
-  );
+        </ScrollView>
+    );
 };
 
 const styles = StyleSheet.create({
@@ -296,6 +370,10 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: 'Poppins-Regular',
         color: '#666',
+    },
+    headerTitleTextGreet: {
+        fontSize: 12,
+        fontFamily: 'Poppins-Regular',
     },
     weatherContainer: {
         paddingHorizontal: 20,
@@ -369,12 +447,10 @@ const styles = StyleSheet.create({
     humidity: {
         fontSize: 12,
         fontFamily: 'Poppins-Bold',
-        color: '#FFEB3B',
     },
     windSpeed: {
         fontSize: 12,
         fontFamily: 'Poppins-Bold',
-        color: '#FFEB3B',
     },
     icon: {
         width: 100,
@@ -438,8 +514,29 @@ const styles = StyleSheet.create({
         padding: 15,
         elevation: 2, 
     },
+    infoMessage: {
+        position: 'absolute',
+        top: 20,
+        left: 10,
+        width: 250,
+        padding: 10,
+        backgroundColor: 'white',
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 2,
+        zIndex: 10,
+        elevation: 5,
+    },
+    infoText: {
+        fontSize: 12,
+        color: '#333',
+        fontFamily: 'Poppins-Regular',
+    },
 
-    
 });
 
 

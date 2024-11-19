@@ -4,12 +4,76 @@ import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Animated, Dimensions } from 'react-native';
 import HomeScreen from './../screens/Home'; 
+import Calendar from './../screens/Calendar';
 import ProductScreen from './../screens/Product'; 
+import ProductPost from './../screens/ProductPost';
+import Post from './../screens/Post';
+import ImageViewer from './../components/ImageViewer';
+import VideoPlayer from './../components/VideoPlayer';
+import AdditionalDetails from './../components/AdditionalDetails';
+import Scheduler from './../screens/Scheduler';
+import Tips from './../screens/Tips';
+import Weather from './../screens/Weather';
+import Finance from './../screens/Finance';
+import MarketPrice from './../screens/MarketPrice';
 import ProfileScreen from './../screens/Profile'; 
+
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 const { width } = Dimensions.get('window');
+
+const ProductStack = () => {
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+      }}
+    >
+      <Stack.Screen name="Product" component={ProductScreen} />
+      <Stack.Screen name="Calendar" component={Calendar} />
+      <Stack.Screen name="ProductPost" component={ProductPost} />
+      <Stack.Screen name="Post" component={Post} />
+      <Stack.Screen name="ImageViewer" component={ImageViewer} />
+      <Stack.Screen name="VideoPlayer" component={VideoPlayer} />
+      <Stack.Screen name="AdditionalDetails" component={AdditionalDetails} />
+      <Stack.Screen name="Scheduler" component={Scheduler} />
+      <Stack.Screen name="Finance" component={Finance} />
+      <Stack.Screen name="Weather" component={Weather} />
+      <Stack.Screen name="Tips" component={Tips} />
+      <Stack.Screen name="MarketPrice" component={MarketPrice} />
+    </Stack.Navigator>
+  );
+};
+
+const HomeStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+      }}
+    >
+      <Stack.Screen name="Home" component={HomeScreen} />
+    </Stack.Navigator>
+  );
+};
+
+
+const ProfileStack = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+      }}
+    >
+      <Stack.Screen name="Profile" component={ProfileScreen} />
+    </Stack.Navigator>
+  );
+};
 
 const HomeTabs = () => {
   const translateX = useRef(new Animated.Value(0)).current;
@@ -56,7 +120,7 @@ const HomeTabs = () => {
             return <Ionicons name={iconName} size={size} color={color} />;
           },
           tabBarActiveTintColor: 'green',
-          tabBarInactiveTintColor: 'gray', 
+          tabBarInactiveTintColor: 'gray',
           headerShown: false,
           tabBarStyle: { 
             position: 'relative', 
@@ -65,7 +129,7 @@ const HomeTabs = () => {
             backgroundColor: '#f5f5f5',
           },
           tabBarLabelStyle: { fontSize: 14, fontFamily: 'Poppins-Bold', marginBottom: 9 }, 
-          tabBarIconStyle: { size: 24, marginTop: -5, marginTop: 5, }, 
+          tabBarIconStyle: { size: 24, marginTop: 1 },
         })}
         screenListeners={({ route }) => ({
           tabPress: (e) => {
@@ -81,29 +145,18 @@ const HomeTabs = () => {
           },
         })}
       >
-        <Tab.Screen name="HomeScreen" options={{ title: 'Home' }}>
-          {() => (
-            <Stack.Navigator screenOptions={screenOptions}>
-              <Stack.Screen name="Home" component={HomeScreen} />
-            </Stack.Navigator>
-          )}
-        </Tab.Screen>
-        <Tab.Screen name="ProductScreen" options={{ title: 'Product' }}>
-          {() => (
-            <Stack.Navigator screenOptions={screenOptions}>
-              <Stack.Screen name="Product" component={ProductScreen} />
-            </Stack.Navigator>
-          )}
-        </Tab.Screen>
-        <Tab.Screen name="ProfileScreen" options={{ title: 'Profile' }}>
-          {() => (
-            <Stack.Navigator screenOptions={screenOptions}>
-              <Stack.Screen name="Profile" component={ProfileScreen} />
-            </Stack.Navigator>
-          )}
-        </Tab.Screen>
+        {/* HomeScreen Stack */}
+        <Tab.Screen name="HomeScreen" component={HomeStack} options={{ title: 'Home' }}/>
+
+        {/* ProductScreen Stack */}
+        <Tab.Screen name="ProductScreen" component={ProductStack} options={{ title: 'Product' }} />
+
+        {/* ProfileScreen Stack */}
+        <Tab.Screen name="ProfileScreen" component={ProfileStack} options={{ title: 'Profile' }}/>
+         
       </Tab.Navigator>
-      
+
+      {/* Animated line for tab indicator */}
       <Animated.View
         style={{
           justifyContent: 'center',
@@ -117,7 +170,6 @@ const HomeTabs = () => {
           transform: [{ translateX }],
         }}
       />
-
     </View>
   );
 };
