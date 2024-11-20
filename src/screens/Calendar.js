@@ -30,6 +30,7 @@ const CalendarScreen = ({ route }) => {
     const [year, setYear] = useState('2024');
     const [selectedDateCalendar, setSelectedDateCalendar] = useState('');
     const [showCalendar, setShowCalendar] = useState(false);
+    const [selectedSchedule, setSelectedSchedule] = useState(null);
 
     useEffect(() => {
         const { newSchedule } = route.params || {}; 
@@ -66,32 +67,69 @@ const CalendarScreen = ({ route }) => {
         setYear(value);
     };
 
+    const philippineEvents = [
+        { dateEvent: '2024-01-01', descriptionEvent: 'New Year\'s Day' },
+        { dateEvent: '2024-02-25', descriptionEvent: 'EDSA People Power Revolution Anniversary' },
+        { dateEvent: '2024-04-09', descriptionEvent: 'Araw ng Kagitingan (Day of Valor)' },
+        { dateEvent: '2024-06-12', descriptionEvent: 'Independence Day' },
+        { dateEvent: '2024-08-21', descriptionEvent: 'Ninoy Aquino Day' },
+        { dateEvent: '2024-08-26', descriptionEvent: 'National Heroes Day' },
+        { dateEvent: '2024-11-30', descriptionEvent: 'Bonifacio Day' },
+        { dateEvent: '2024-12-25', descriptionEvent: 'Christmas Day' },
+        { dateEvent: '2024-12-30', descriptionEvent: 'Rizal Day' },
+        { dateEvent: '2025-01-01', descriptionEvent: 'New Year\'s Day' },
+        { dateEvent: '2025-02-25', descriptionEvent: 'EDSA People Power Revolution Anniversary' },
+        { dateEvent: '2025-04-09', descriptionEvent: 'Araw ng Kagitingan (Day of Valor)' },
+        { dateEvent: '2025-06-12', descriptionEvent: 'Independence Day' },
+        { dateEvent: '2025-08-21', descriptionEvent: 'Ninoy Aquino Day' },
+        { dateEvent: '2025-08-26', descriptionEvent: 'National Heroes Day' },
+        { dateEvent: '2025-11-30', descriptionEvent: 'Bonifacio Day' },
+        { dateEvent: '2025-12-25', descriptionEvent: 'Christmas Day' },
+        { dateEvent: '2025-12-30', descriptionEvent: 'Rizal Day' },
+    ];
+    
     const onDayPress = (day) => {
-        setSelectedDateCalendar(day.dateString);
-    };
-
+        const selectedDate = day.dateString;
+        setSelectedDateCalendar(selectedDate);
+    
+        const schedule = schedules.find(schedule => schedule.date === selectedDate);
+        
+        if (schedule) {
+            setSelectedSchedule(schedule);
+            return;
+        }
+    
+        const philippineEvent = philippineEvents.find(event => event.dateEvent === selectedDate);
+    
+        setSelectedSchedule(philippineEvent ? { ...philippineEvent, time: null } : null);
+    };     
+    
     const onShowCalendar = () => {
         setShowCalendar(false); 
         setTimeout(() => setShowCalendar(true), 0); 
-    };
-
-    const formatDate = (date) => {
-        const parsedDate = new Date(date);
-        if (isNaN(parsedDate)) {
-        return 'Invalid Date';
-        }
-        return format(parsedDate, 'EEEE • MMMM d, yyyy • hh:mm a');
     };
 
     const markedDates = schedules.reduce((acc, schedule) => {
         acc[schedule.date] = {
             selected: true,
             marked: true,
-            selectedDotColor: '#4CAF50',
+            selectedDayBackgroundColor: '#4CAF50',
+            description: schedule.description,
+            time: schedule.time || '',
         };
         return acc;
     }, {});
-
+    
+    philippineEvents.forEach(event => {
+        if (!markedDates[event.dateEvent]) {
+            markedDates[event.dateEvent] = {
+                marked: true,
+                dotColor: '#FF5733',
+                descriptionEvent: event.descriptionEvent,
+            };
+        }
+    });
+    
     const handleArrowClick = (schedule) => {
         navigation.navigate('Scheduler', { scheduleToEdit: schedule });
     };
@@ -154,8 +192,8 @@ const CalendarScreen = ({ route }) => {
     
                             <View style={styles.detailLine} />
                             <View style={styles.dateTimeRow}>
-                                <Text style={styles.details}>{schedule.date}</Text>
-                                <Text style={styles.details}>{schedule.time}</Text>
+                                <Text style={styles.details}>{format(new Date(schedule.date), 'MMMM dd, yyyy')}</Text>
+                                <Text style={styles.details}>{schedule.time && schedule.time !== 'N/A' ? schedule.time : ''}</Text>
                             </View>
                         </View>
     
@@ -170,8 +208,10 @@ const CalendarScreen = ({ route }) => {
             </View>
         );
     };
-    
 
+    const today = new Date(); 
+    const formattedDate = format(today, 'EEEE!, MMMM dd, yyyy');
+    
     return (
         <ScrollView style={styles.container} scrollEventThrottle={16}>
             <StatusBar hidden={false} />
@@ -182,7 +222,7 @@ const CalendarScreen = ({ route }) => {
                     <Text style={styles.headerTitleText}>Hello, Jojo!</Text>
                 </View>
                 <View style={styles.headerGreet}>
-                    <Text style={styles.headerTitleText}>Today is Saturday!, October 19, 2024</Text>
+                    <Text style={styles.headerTitleText}>Today is {formattedDate}</Text>
                 </View>
             </View>
 
@@ -280,7 +320,7 @@ const CalendarScreen = ({ route }) => {
                 {/* Placeholder with conditional Calendar */}
                 <View style={styles.placeholderContainer}>
                     {!showCalendar ? (
-                        <Text style={styles.placeholderText}>Calendar will appear here</Text>
+                        <Text style={styles.placeholderText}>Calendar will appear here.</Text>
                         ) : (
                             <Calendar
                                 current={`${year}-${monthNumbers[month]}-01`}
@@ -302,15 +342,17 @@ const CalendarScreen = ({ route }) => {
                                     textDayFontFamily: 'Poppins-Regular',
                                     textMonthFontFamily: 'Poppins-Bold',
                                     textDayHeaderFontFamily: 'Poppins-Regular',
-                                    textDayFontSize: 12,
+                                    textDayFontSize: 11,
                                     textMonthFontSize: 12,
                                     textDayHeaderFontSize: 12,
+                                    dotColor: 'transparent', 
+                                    selectedDotColor: 'transparent',
                                     'stylesheet.day.basic': { 
                                         base: {
                                             marginBottom: -10,
                                             borderRadius: 25,             
-                                            width: 30,                   
-                                            height: 30,       
+                                            width: 20,                   
+                                            height: 20,       
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                         },
@@ -323,10 +365,46 @@ const CalendarScreen = ({ route }) => {
                         )}
                     </View>
 
-                <View style={styles.placeholderResult}>
-                    <Icon name="bell" size={18} color="green" />
-                    {selectedDateCalendar ? <Text style={styles.selectedDateCalendar}>Selected Date: {selectedDateCalendar}</Text> : null}
-                </View>
+                    <View style={styles.placeholderResult}>
+                        {showCalendar && selectedSchedule ? (
+                            <View style={styles.wrapperScheduleCalendar}>
+                                {selectedSchedule.descriptionEvent ? null : (
+                                    <View style={styles.rowSelectedDate}>
+                                        <Text style={styles.selectedDateCalendar}>You have selected date for the schedule. Please review it.</Text>
+                                    </View>
+                                )}
+                                <View style={styles.rowScheduleDetails}>
+                                    {selectedSchedule.descriptionEvent ? null : (
+                                        <>
+                                            <Icon name="bell" size={18} color="#4CAF50" />
+                                            <Text style={styles.scheduleDetails}>
+                                                {format(new Date(selectedSchedule.date), 'EEEE, MMMM dd, yyyy')}
+                                            </Text>
+                                        </>
+                                    )}
+                                    {/* Display schedule time if available */}
+                                    {selectedSchedule.time && !selectedSchedule.descriptionEvent && (
+                                        <Text style={styles.scheduleDetails}>
+                                            {`   ${selectedSchedule.time}`}
+                                        </Text>
+                                    )}
+                                    {/* Display event description for events */}
+                                    {selectedSchedule.descriptionEvent && (
+                                    <Text style={styles.scheduleEventDetails}>
+                                            This date is marked for event: 
+                                            <Text style={styles.scheduleEventName}> {selectedSchedule.descriptionEvent}</Text>
+                                        </Text>
+                                    )}
+                                </View>
+                            </View>
+                        ) : (
+                            <View style={styles.rowPlaceholder}>
+                                <Text style={styles.placeholderScheduleText}>
+                                    No schedule or event selected for this date.
+                                </Text>
+                            </View>
+                        )}
+                    </View>
 
                 <TouchableOpacity style={styles.createScheduleButton} onPress={() => navigation.navigate('Scheduler')}>
                     <Text style={styles.doneText}>Create Schedule</Text>
@@ -509,6 +587,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     titleCalendar: {  
+        marginBottom: 10,
         alignItems: 'flex-start',  
     },
     textCalendar: {
@@ -566,12 +645,68 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         width: '100%',
         marginBottom: 10,
-        height: 300,
+        height: 'auto',
+        minHeight: 300, 
     },
-    placeholderText: {
+    placeholderResult: {
+        backgroundColor: '#D9D9D9',  
+        padding: 10,
+        justifyContent: 'center',
+        borderRadius: 10,
+        width: '100%',
+        marginTop: 10,
+        height: 100,
+    },
+    wrapperScheduleCalendar: {
+        margin: 5,
+    },
+    rowSelectedDate: {
+        alignItems: 'center',
+        paddingVertical: 5,
+    },
+    selectedDateCalendar: {
+        fontSize: 11,
+        fontFamily: 'Poppins-Regular',
+        color: '#000',
+    },
+    rowScheduleDetails: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        margin: 5,
+    },
+    scheduleDetails: {
+        fontSize: 12,
+        fontFamily: 'Poppins-Regular',
         color: '#585858',
-        fontStyle: 'italic',
-        fontSize: 18,
+    },
+    scheduleEventDetails: {
+        fontSize: 12,
+        fontFamily: 'Poppins-Regular',
+        color: '#000',
+    },
+    scheduleEventName: {
+        fontSize: 12,
+        fontFamily: 'Poppins-Bold',
+        color: '#4CAF50',
+    },
+    scheduleLabel: {
+        fontFamily: 'Poppins-Regular',
+        color: '#000',
+    },
+    rowPlaceholder: {
+        alignItems: 'center',
+        justifyContent: 'center', 
+        paddingVertical: 10,
+    },
+    placeholderScheduleText: {
+        fontSize: 14,
+        fontFamily: 'Poppins-Regular',
+        color: '#585858',
+    },
+    placeholderText: { 
+        fontSize: 14,
+        fontFamily: 'Poppins-Regular',
+        color: '#585858',
     },
     calendar: {
         width: '100%',
@@ -588,17 +723,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: "#28B805",  
         fontFamily: 'Poppins-Bold',
-    },
-    placeholderResult: {
-        flexDirection: 'row',
-        backgroundColor: '#D9D9D9',  
-        padding: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 10,
-        width: '100%',
-        marginTop: 10,
-        height: 100,
     },
     selectedDate: {
         color: '#585858',
