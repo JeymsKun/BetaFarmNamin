@@ -96,7 +96,7 @@ export default function Scheduler({ navigation, route }) {
 
     const handleDescriptionChange = (text) => {
         if (text.length <= MAX_LENGTH) {
-        setProductDescription(text);
+          setProductDescription(text);
         }
     };
 

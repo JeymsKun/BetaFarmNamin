@@ -189,15 +189,15 @@ const ProductScreen = ({ route }) => {
         <View style={styles.createContainer}>
             <Text style={styles.createTitle}>Start monitoring your finances</Text>
 
-            <TouchableOpacity style={styles.createButton}>
+            <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('OverviewBalance')}>
                 <Text style={styles.createText}>Create overview balance</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.createButton}>
+            <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('Tag')}>
                 <Text style={styles.createText}>Create tags</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.createButton}>
+            <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('FinancialLog')}>
                 <Text style={styles.createText}>Create finance log</Text>
             </TouchableOpacity>
         </View>

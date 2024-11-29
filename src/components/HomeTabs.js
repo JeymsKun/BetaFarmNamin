@@ -16,8 +16,12 @@ import Tips from './../screens/Tips';
 import Weather from './../screens/Weather';
 import Finance from './../screens/Finance';
 import MarketPrice from './../screens/MarketPrice';
-import ProfileScreen from './../screens/Profile'; 
-
+import ProfileScreen from './../screens/Profile';
+import OverviewBalance from './../screens/OverviewBalance';
+import Tag from './../screens/Tag';
+import FinancialLog from './../screens/FinancialLog';
+import Account from './../screens/Account';
+import ShowAccount from './../screens/ShowAccount';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -34,13 +38,18 @@ const ProductStack = () => {
     >
       <Stack.Screen name="Product" component={ProductScreen} />
       <Stack.Screen name="Calendar" component={Calendar} />
+      <Stack.Screen name="Finance" component={Finance} />
+      <Stack.Screen name="OverviewBalance" component={OverviewBalance} />
+      <Stack.Screen name="Tag" component={Tag} />
+      <Stack.Screen name="FinancialLog" component={FinancialLog} />
+      <Stack.Screen name="Account" component={Account} />
+      <Stack.Screen name="ShowAccount" component={ShowAccount} />
       <Stack.Screen name="ProductPost" component={ProductPost} />
       <Stack.Screen name="Post" component={Post} />
       <Stack.Screen name="ImageViewer" component={ImageViewer} />
       <Stack.Screen name="VideoPlayer" component={VideoPlayer} />
       <Stack.Screen name="AdditionalDetails" component={AdditionalDetails} />
       <Stack.Screen name="Scheduler" component={Scheduler} />
-      <Stack.Screen name="Finance" component={Finance} />
       <Stack.Screen name="Weather" component={Weather} />
       <Stack.Screen name="Tips" component={Tips} />
       <Stack.Screen name="MarketPrice" component={MarketPrice} />
