@@ -12,8 +12,6 @@ import axios from 'axios';
 
 const { width, height } = Dimensions.get('window');
 
-const MAX_LENGTH = 30;
-
 const financialAPIURL = "http://192.168.1.56/farmnamin/financial_record.php";
 
 export default function FinancialLog({ navigation, route }) {
@@ -337,12 +335,6 @@ export default function FinancialLog({ navigation, route }) {
         if (isNaN(parsedAmount)) return "₱0.00"; 
         return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(parsedAmount);
     };
-
-    const handleDescriptionChange = (text) => {
-        if (text.length <= MAX_LENGTH) {
-            setDescription(text);
-        }
-    };
     
     const handleCancel = () => {
         setIsConfirmationModalVisible(false); 
@@ -556,21 +548,16 @@ export default function FinancialLog({ navigation, route }) {
                         </View>
                     </>
                 ) : null}
-                <Text style={styles.inputTitles}>Name, Description, or Title</Text>
-                <View style={[styles.inputWrapperDescription, descriptionFocused && description.length === 0 && styles.errorBorder]}>
+                <Text style={styles.inputTitles}>Description</Text>
+                <View style={[styles.inputWrapper, descriptionFocused && description.length === 0 && styles.errorBorder]}>
                     <TextInput
-                        style={styles.inputDescription}
-                        placeholder="Add Name, Description, or Title"
+                        style={styles.input}
+                        placeholder="Add Description"
                         value={description}
-                        onChangeText={handleDescriptionChange}
-                        multiline
-                        scrollEnabled={false}
+                        onChangeText={setDescription}
                         onFocus={() => setDescriptionFocused(false)} 
                         onBlur={() => setDescriptionFocused(true)}
                     />
-                    <Text style={[styles.characterCount, descriptionFocused && description.length === 0 && styles.errorCharacterCount]}>
-                        {`${description.length}/${MAX_LENGTH}`}
-                    </Text>
                 </View>
                 <Text style={styles.inputTitles}>Amount</Text>
                 <View style={[styles.inputWrapper, amountFocused && amount.length === 0 && styles.errorBorder]}>

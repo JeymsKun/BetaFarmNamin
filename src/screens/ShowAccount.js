@@ -1,93 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar, TextInput, ScrollView, Keyboard, TouchableWithoutFeedback, ActivityIndicator, Animated, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, StatusBar,  ScrollView } from 'react-native';
 import { BackHandler } from 'react-native';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import Feather from '@expo/vector-icons/Feather';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useFinancialLogs } from '../context/FinancialLogContext';
-import { Easing } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-export default function ShowFinancialAccount({ navigation }) {
-    const { logs } = useFinancialLogs(); 
-    const [showInfoMessage, setShowInfoMessage] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [isSearchActive, setIsSearchActive] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [results, setResults] = useState([]);
-    const [showNoData, setShowNoData] = useState(false);
-    const [accounts, setAccounts] = useState([]);
-    const [hasSearched, setHasSearched] = useState(false);
-    const [showCheckbox, setShowCheckbox] = useState(false);
-    const [selectedAccounts, setSelectedAccounts] = useState([]);
-    const [showDeleteIcons, setShowDeleteIcons] = useState(false);
-    const [accountToDelete, setAccountToDelete] = useState(null);
-    const [showDeleteConfirmationModal, setShowDeleteConfirmationModal] = useState(false);
+export default function ShowFinancialAccount({ navigation, route }) {
+    const { selectedAccount } = route.params;
+    const [accountData, setAccountData] = useState([]);
+    const [accountName, setAccountName] = useState('');
 
     useEffect(() => {
- 
-        const unsubscribe = navigation.addListener('focus', () => {
-            setAccounts([]);
-        });
+        const fetchAccountEntries = async () => {
+            try {
+                const response = await fetch(
+                    `http://192.168.1.56/farmnamin/get_account_entries.php?account=${encodeURIComponent(selectedAccount)}`,
+                    {
+                        method: 'GET',
+                        credentials: 'include',
+                    }
+                );
 
-        return unsubscribe;  
-    }, [navigation]); 
-    
-    const fetchAccounts = async () => {
-        setIsLoading(true);  
-        try {
-            const response = await fetch('http://192.168.1.56/farmnamin/get_financial_accounts.php', {
-                method: 'GET',
-                credentials: 'include', 
-            });
+                if (!response.ok) throw new Error('Failed to fetch account details');
 
-            if (!response.ok) {
-                setShowNoData(true);  
-                setTimeout(() => setShowNoData(false), 2000); 
-                return;  
-            }
+                const data = await response.json();
+                console.log('API Response:', data);
 
-            const data = await response.json();
+                if (data.Success) {
+                    setAccountData(data.Entries); 
+                    setAccountName(data.Account);
+                } else {
+                    setAccountData([]);
+                    setAccountName('');
+                }
+            } catch (error) {
+                console.error('Error fetching account details:', error);
+            } 
+        };
 
-            if (data.Success) {
-                const fetchedAccounts = data.data.map(account => ({ account }));
-                setAccounts(prevAccounts => {
-                    const activeAccounts = prevAccounts.filter(account =>
-                        fetchedAccounts.some(fetched => fetched.account === account.account)
-                    );
-                    return [...activeAccounts, ...fetchedAccounts];
-                });
-            } else {
-                setShowNoData(true);  
-                setTimeout(() => setShowNoData(false), 2000);
-            }
-        } finally {
-            setIsLoading(false);  
+        if (selectedAccount) {
+            fetchAccountEntries();
         }
-    };
-
-    useEffect(() => {
-        fetchAccounts();  
-    }, [navigation]);
-    
-
-    useEffect(() => {
-        if (logs.length > 0) {
-            const uniqueLogAccounts = [...new Set(logs.map(log => log.account))];
-            const logAccounts = uniqueLogAccounts.map(account => ({ account }));
-    
-            setAccounts(prevAccounts => {
-                const combinedAccounts = [
-                    ...prevAccounts,
-                    ...logAccounts.filter(logAccount =>
-                        !prevAccounts.some(prev => prev.account === logAccount.account)
-                    ),
-                ];
-                return combinedAccounts;
-            });
-        }
-    }, [logs]);     
+    }, [selectedAccount]);
 
     
     useEffect(() => {
@@ -102,250 +56,6 @@ export default function ShowFinancialAccount({ navigation }) {
     }, []);
 
 
-    useEffect(() => {
-        const clearMessage = () => {
-            setShowInfoMessage(false);
-        };
-
-        let timer;
-        if (showInfoMessage) {
-            timer = setTimeout(clearMessage, 4000);
-        }
-
-        return () => clearTimeout(timer);
-    }, [showInfoMessage]);
-
-
-    useEffect(() => {
-        const debounceSearch = setTimeout(() => {
-            if (searchQuery.trim()) {
-                handleSearch();
-            }
-        }, 300);
-        
-        return () => clearTimeout(debounceSearch);
-    }, [searchQuery]);
-
-
-    useEffect(() => {
-        if (searchQuery.trim() === "") {
-            setResults([]); 
-            setIsSearchActive(false); 
-        }
-    }, [searchQuery]);
-    
-
-    const handleSearch = async () => {
-        setIsLoading(true);
-        const normalizeString = (str) => str.trim().toLowerCase();
-        const normalizedQuery = normalizeString(searchQuery);
-
-        const filteredResults = accounts.filter((item) =>
-            normalizeString(item.account).includes(normalizedQuery)
-        );
-
-        if (filteredResults.length > 0) {
-            setResults(filteredResults);
-        } else {
-
-            try {
-                const response = await fetch(
-                    `http://192.168.1.56/farmnamin/get_financial_accounts.php?query=${encodeURIComponent(
-                        searchQuery
-                    )}`,
-                    { method: 'GET', credentials: 'include' }
-                );
-
-                if (!response.ok) throw new Error("Failed to fetch results from backend");
-
-                const data = await response.json();
-
-                if (data.Success && data.data.length > 0) {
-                    setResults(data.data.map((account) => ({ account })));
-                } else {
-                    setShowNoData(true);
-                    setTimeout(() => setShowNoData(false), 2000);
-                }
-            } catch (error) {
-                console.error("Error fetching backend data:", error);
-            }
-        }
-
-        setIsLoading(false);
-    };
-      
-
-    const handleOutsideClick = () => {
-        if (pop) {
-            popOut(); 
-            setShowCheckbox(false);
-            setShowDeleteIcons(false);
-            
-        }
-        if (isSearchActive) {
-            setIsSearchActive(false); 
-            setSearchQuery(""); 
-            setResults([]);
-            Keyboard.dismiss(); 
-        }
-    };    
-
-    const [icon_1] = useState(new Animated.Value(40));
-    const [icon_2] = useState(new Animated.Value(40));
-    const [icon_3] = useState(new Animated.Value(40));
-    const [rotation] = useState(new Animated.Value(0));
-
-    const [pop, setPop] = useState(false);
-    const [activePop, setActivePop] = useState(null);
-
-    const popIn = () => {
-        setPop(true);
-        Animated.timing(icon_1,{
-            toValue: 110,
-            duration: 500,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: false,
-        }).start();
-        Animated.timing(icon_2,{
-            toValue: 95,
-            duration: 500,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: false,
-        }).start();
-        Animated.timing(icon_3,{
-            toValue: 110,
-            duration: 500,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: false,
-        }).start();
-        Animated.timing(rotation, {
-            toValue: 1, 
-            duration: 300,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: true,
-        }).start();
-    }
-
-    const popOut = () => {
-        setPop(false);
-        setShowDeleteIcons(false); 
-        setShowCheckbox(false);
-        Animated.timing(icon_1,{
-            toValue: 40,
-            duration: 500,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: false,
-        }).start();
-        Animated.timing(icon_2,{
-            toValue: 40,
-            duration: 500,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: false,
-        }).start();
-        Animated.timing(icon_3,{
-            toValue: 40,
-            duration: 500,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: false,
-        }).start();
-        Animated.timing(rotation, {
-            toValue: 0, 
-            duration: 300,
-            easing: Easing.out(Easing.exp),
-            useNativeDriver: true,
-        }).start();
-    }
-    
-    const rotate = rotation.interpolate({
-        inputRange: [0, 1],
-        outputRange: ['0deg', '45deg'], 
-    });
-
-    const toggleAccountSelection = (account) => {
-        setSelectedAccounts((prev) =>
-            prev.some((item) => item.id === account.id)
-                ? prev.filter((item) => item.id !== account.id)
-                : [...prev, account]
-        );
-    };
-
-    const deleteAccountHandler = async (accountName) => {
-        setIsLoading(true); 
-        try {
-            const response = await fetch(`http://192.168.1.56/farmnamin/delete_financial_account.php`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ accountName }),
-                credentials: 'include',
-            });
-    
-            if (!response.ok) throw new Error("Failed to delete account");
-    
-            const data = await response.json(); 
-            if (data.Success) {
-                // Update the local state to remove the deleted account
-                setAccounts(prevAccounts => prevAccounts.filter(account => account.account !== accountName));
-
-                setShowDeleteConfirmationModal(false); 
-            } else {
-                console.log("Delete failed:", data.Message);
-            }
-        } catch (error) {
-            console.error("Error deleting account:", error);
-        } finally {
-            setIsLoading(false);  
-        }
-    };    
-
-    const confirmDelete = () => {
-        if (accountToDelete) {
-            deleteAccountHandler(accountToDelete.account); 
-            setAccountToDelete(null); 
-        }
-    };
-
-    const handleDeleteIconPress = (account) => {
-        setAccountToDelete(account); 
-        setShowDeleteConfirmationModal(true);
-    };
-
-    const toggleDeleteIcons = () => {
-        if (showDeleteIcons) {
-            setShowDeleteIcons(false); 
-            setActivePop(null);
-        } else {
-            setShowDeleteIcons(true); 
-            setShowCheckbox(false); 
-            setActivePop(1); 
-            popIn(); 
-        }
-    };
-
-    const toggleCheckboxVisibility = () => {
-        if (showCheckbox) {
-            setShowCheckbox(false); 
-            setActivePop(null); 
-        } else {
-            setShowCheckbox(true); 
-            setShowDeleteIcons(false); 
-            setActivePop(3); 
-            popIn(); 
-        }
-    };
-
-    const handlePlusNavigation = () => {
-        popOut(); 
-        setShowDeleteIcons(false); 
-        setShowCheckbox(false); 
-        navigation.navigate('FinancialLog');
-    };
-
-    const handleEditClick = (account) => {
-        navigation.navigate('FinancialLog', { accountName: account.account });
-    };    
-    
     const renderHeader = () => (
         <View style={styles.header}>
             <View style={styles.rowProductTitle}>
@@ -355,189 +65,67 @@ export default function ShowFinancialAccount({ navigation }) {
                     <AntDesign name="arrowleft" size={28} color="white" />
                 </TouchableOpacity>
 
-                {/* Centered Text with Question Icon or Search Input */}
-                {isSearchActive ? (
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search..."
-                        placeholderTextColor="#585858"
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        autoFocus={true}
-                    />
-                ) : (
-                    <View style={styles.textWithIcon}>
-                        <Text style={styles.headerTextBottom}>View Entries for -AccountName- </Text>
-                        <TouchableOpacity onPress={() => setShowInfoMessage((prev) => !prev)}>
-                            <AntDesign name="questioncircleo" size={14} color="white" />
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                {/* Search Icon */}
-                <TouchableOpacity
-                    style={styles.iconContainer}
-                    onPress={() => {
-                        if (isSearchActive) {
-                            handleSearch(); 
-                        } else {
-                            setIsSearchActive(true); 
-                        }
-                    }}
-                >
-                    <Feather name="search" size={28} color="white" />
-                </TouchableOpacity>
-            </View>
-
-            {showInfoMessage && (
-                <View style={styles.infoMessage}>
-                    <Text style={styles.infoText}>
-                        This Product Management Tool allows you to manage your products efficiently. You can add, edit, and delete products as needed.
+                <View style={styles.textWithIcon}>
+                    <Text style={styles.headerTextBottom}>
+                        View Entries for {selectedAccount}
                     </Text>
                 </View>
-            )}
+                
+            </View>
         </View>
     );
 
     return (
-        <TouchableWithoutFeedback onPress={handleOutsideClick}>
-            <View style={{ flex: 1 }}>
-                {renderHeader()}
-                <View style={styles.container}>
-                    <StatusBar hidden={false} />
-                    {/* Loading Indicator */}
-                    {isLoading ? (
-                        <View style={styles.centeredContainer}>
-                            <ActivityIndicator size="large" color="#4CAF50" />
+        <View style={{ flex: 1 }}>
+            {renderHeader()}
+            <View style={styles.container}>
+                <StatusBar hidden={false} />
+                
+                {/* Render accounts dynamically */}
+                <ScrollView
+                    contentContainerStyle={styles.scrollContentContainer}
+                    showsVerticalScrollIndicator={false}
+                > 
+                    <View style={styles.accountWrapper}>
+                        <View style={styles.accountContent}>
+                            {/* Always show the account name */}
+                            <Text style={styles.placeholderText}>
+                                {accountName}
+                            </Text>
                         </View>
-                    ) : (
-                        <>
-                            {/* Search Results */}
-                            {showNoData ? (
-                                <View style={styles.centeredContainer}>
-                                    <Text style={styles.noDataText}>
-                                        Sorry, but you don't have any financial accounts that match your search criteria.
+
+                        <View style={styles.columnAccountContent}>
+                            <Text style={styles.columnHeaderText}>Date</Text>
+                            <Text style={styles.columnHeaderText}>Description</Text>
+                            <Text style={styles.columnHeaderText}>Amount</Text>
+                            <Text style={styles.columnHeaderText}>Type</Text>
+                        </View>
+
+                        {/* Show entries or 'You don't have entry yet' message */}
+                        {accountData.length === 0 ? (
+                            <Text style={styles.noDataText}>You don't have entry yet.</Text>
+                        ) : (
+                            accountData.map((entry) => (
+                                <View key={entry.id} style={styles.columnAccountPlaceholder}>
+                                    <Text style={styles.columnEntryText}>
+                                        {new Date(entry.date).toLocaleString('default', { month: 'long' })}
+                                        {'\n'}
+                                        {new Date(entry.date).getDate()}, {new Date(entry.date).getFullYear()}
                                     </Text>
+                                    <Text style={styles.columnEntryText}>{entry.description}</Text>
+                                    <Text style={styles.columnEntryText}>
+                                        {new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(entry.amount)}
+                                    </Text>
+                                    <Text style={styles.columnEntryText}>{entry.type}</Text>
                                 </View>
-                            ) : (
-                                <>
-                                    {isSearchActive && results.map((result, index) => (
-                                        <View key={index} style={styles.accountWrapper}>
-                                            <TouchableOpacity style={styles.accountButton}>
-                                                <Text style={styles.noDataText}>{result.account}</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    ))}                          
-                                </>
-                            )}
-                        </>
-                    )}
-
-                    {/* Render accounts dynamically */}
-                    <ScrollView
-                        contentContainerStyle={styles.scrollContentContainer}
-                        showsVerticalScrollIndicator={false}
-                    >
-                        {!isSearchActive && !searchQuery ? ( 
-                            accounts.length === 0 && !hasSearched && !showNoData && !isLoading ? (
-                                <Text style={styles.noDataText}>No accounts available yet</Text>
-                            ) : (
-                                accounts.map((account, index) => (
-                                    <View key={index} style={styles.accountWrapper}>
-                                        <View style={styles.accountButton}>
-                                            <Text style={styles.placeholderText}>
-                                                {account.account}
-                                            </Text>
-
-                                            {showCheckbox && (
-                                                <>
-                                                    <TouchableOpacity 
-                                                        style={styles.checkboxIcon} 
-                                                        onPress={() => toggleAccountSelection(account)}
-                                                    >
-                                                        <MaterialIcons
-                                                            name={
-                                                                selectedAccounts.some((item) => item.id === account.id)
-                                                                    ? 'check-box' 
-                                                                    : 'check-box-outline-blank'
-                                                            }
-                                                            size={24}
-                                                            color="black"
-                                                        />
-                                                    </TouchableOpacity>
-
-                                                    <TouchableOpacity
-                                                        style={styles.editIcon}
-                                                        onPress={() => handleEditClick(account)}
-                                                    >
-                                                        <AntDesign name="edit" size={24} color="black" />
-                                                    </TouchableOpacity>
-                                                </>
-                                            )}
-
-                                            {showDeleteIcons && (
-                                                <TouchableOpacity
-                                                    style={styles.deleteIcon}
-                                                    onPress={() => handleDeleteIconPress(account)}
-                                                >
-                                                    <AntDesign name="delete" size={24} color="red" />
-                                                </TouchableOpacity>
-                                            )}
-                                        </View>
-                                    </View>
-                                ))
-                            )
-                        ) : null}
-                    </ScrollView>
-
-                    
-                    <Animated.View style={[styles.circlePop, {bottom: icon_1}]}>
-                        <TouchableOpacity onPress={toggleDeleteIcons}>
-                            <AntDesign name="delete" size={20} color="white" />
-                        </TouchableOpacity>
-                    </Animated.View>
-                    <Animated.View style={[styles.circlePop, {bottom: icon_2, right: icon_2}]}>
-                        <TouchableOpacity onPress={handlePlusNavigation}>
-                            <AntDesign name="plus" size={20} color="white" />
-                        </TouchableOpacity>
-                    </Animated.View>
-                    <Animated.View style={[styles.circlePop, {right: icon_3}]}>
-                        <TouchableOpacity  onPress={toggleCheckboxVisibility}> 
-                            <AntDesign name="select1" size={20} color="white" />
-                        </TouchableOpacity>
-                    </Animated.View>
-                    <TouchableOpacity 
-                        style={styles.circle} 
-                        onPress={() => {
-                            pop === false ? popIn() : popOut();
-                        }}
-                    >
-                         <Animated.View style={{ transform: [{ rotate }] }}>
-                            <AntDesign name="plus" size={24} color="white" />
-                        </Animated.View>
-                    </TouchableOpacity>
-
-
-                </View>
-
-                {/* Delete Financial Account Confirmation Modal */}
-                <Modal visible={showDeleteConfirmationModal} transparent={true} animationType="fade">
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalContent}>
-                            <Text style={styles.modalTitle}>Deleting this account could lead to deleting all your transactions. Are you sure you want to proceed?</Text>
-                            <View style={styles.modalButtons}>
-                                <TouchableOpacity style={styles.modalButton} onPress={confirmDelete}>
-                                    <Text style={styles.modalButtonTextYes}>Yes</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={styles.modalButton} onPress={() => setShowDeleteConfirmationModal(false)}>
-                                    <Text style={styles.modalButtonTextNo}>No</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </View>
+                            ))
+                        )}
                     </View>
-                </Modal>
+                </ScrollView>
+
             </View>
-        </TouchableWithoutFeedback>
+
+        </View>
     );
 }
 
@@ -560,17 +148,16 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     rowProductTitle: {
+        padding: 10,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
     iconContainer: {
-        width: 40,
         alignItems: 'center',
         justifyContent: 'center',
     },
     textWithIcon: {
-        flexDirection: 'row',
         alignItems: 'center',
         flex: 1,
         justifyContent: 'center',
@@ -579,7 +166,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: 'Poppins-Bold',
         color: 'white',
-        marginRight: 5,
     },
     searchInput: {
         flex: 1,
@@ -618,119 +204,60 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },  
     accountWrapper: {
-        backgroundColor: '#f0f0f0',
-        borderWidth: 1,
-        borderRadius: 8,
         marginVertical: 10,
-        width: '100%',
-        padding: 5, 
-    },    
+        borderColor: '#ccc',
+        borderRadius: 8,
+    },   
     accountButton: {
         padding: 10,
         justifyContent: 'center',
         alignItems: 'center',
         flexDirection: 'row',
         width: '100%',
-    },
-    deleteIcon: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
+    }, 
+    accountContent: {
+        borderRadius: 8,
+        borderWidth: 1,
+        padding: 10,
+        justifyContent: 'center',
     },
     placeholderText: {
         fontSize: 16,
         color: '#000',
         fontFamily: 'Poppins-Regular',
+        textAlign: 'center',
+    },
+    columnAccountContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 5,
+    },
+    columnHeaderText: {
         flex: 1,
+        textAlign: 'center',
+        fontFamily: 'Poppins-Medium',
+        fontSize: 14,
     },
-    checkboxIcon: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
+    columnAccountPlaceholder: {
+        flexDirection: 'row', 
+        borderWidth: 1, 
+        borderRadius: 8,
+        marginVertical: 5,
+        flex: 1, 
     },
-    editIcon: {
-        position: 'absolute',
-        top: 10,
-        right: 50,  
+    columnEntryText: {
+        fontSize: 14,
+        color: '#000',
+        fontFamily: 'Poppins-Regular',
+        flexWrap: 'wrap', 
+        textAlign: 'center', 
+        padding: 5,
+        flex: 1
     },
     noDataText: {
         textAlign: 'center',
         fontSize: 16,
         fontFamily: 'Poppins-Regular',
         color: '#333',
-    },
-    resultText: {
-        textAlign: 'center',
-        fontSize: 14,
-        fontFamily: 'Poppins-Regular',
-        color: '#333',
-        marginVertical: 10,
-    },
-    circle: {
-        backgroundColor: '#4CAF50',
-        width: 50,
-        height: 50, 
-        position: 'absolute',
-        bottom: 35,
-        right: 35,
-        borderRadius: 25, 
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    circlePop: {
-        backgroundColor: '#4CAF50',
-        width: 40,
-        height: 40, 
-        position: 'absolute',
-        bottom: 40,
-        right: 40,
-        borderRadius: 25, 
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    modalContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    },
-    modalContent: {
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 10,
-        width: '80%',
-        alignItems: 'center',
-    },
-    modalTitle: {
-        fontSize: 14,
-        textAlign: 'center',
-        fontFamily: 'Poppins-Medium',
-    },
-    modalMessage: {
-        fontSize: 14,
-        fontFamily: 'Poppins-Regular',
-        color: '#666',
-        marginVertical: 10,
-    },
-    modalButtons: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-    },
-    modalButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 40,
-        borderRadius: 5,
-        marginTop: 10,
-    },
-    modalButtonTextYes: {
-        fontSize: 14,
-        color: '#4CAF50',
-        fontFamily: 'Poppins-Medium',
-    },
-    modalButtonTextNo: {
-        fontSize: 14,
-        color: '#F44336',
-        fontFamily: 'Poppins-Medium',
     },
 });
